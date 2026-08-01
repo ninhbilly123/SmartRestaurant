@@ -1,0 +1,76 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: smartrestaurant-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: table_management
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: your_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d table_management"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    container_name: smartrestaurant-backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      DB_HOST: postgres
+      FRONTEND_URL: http://localhost:5173
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend:/app
+      - backend_node_modules:/app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: sh -c "npm run seed:admin && npm run dev"
+
+  frontend-admin:
+    build:
+      context: ./frontend-admin
+    container_name: smartrestaurant-admin
+    restart: unless-stopped
+    env_file:
+      - ./frontend-admin/.env
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./frontend-admin:/app
+      - frontend_admin_node_modules:/app/node_modules
+    depends_on:
+      - backend
+    command: npm run dev -- --host 0.0.0.0
+
+  frontend-customer:
+    build:
+      context: ./frontend-customer
+    container_name: smartrestaurant-customer
+    restart: unless-stopped
+    env_file:
+      - ./frontend-customer/.env
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend-customer:/app
+      - frontend_customer_node_modules:/app/node_modules
+    depends_on:
+      - backend
+    command: npm run dev -- --host 0.0.0.0
+
+volumes:
+  postgres_data:
+  backend_node_modules:
+  frontend_admin_node_modules:
+  frontend_customer_node_modules:
