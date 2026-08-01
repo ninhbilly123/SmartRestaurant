@@ -1,7 +1,12 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import customerService from "../services/customerService";
 import { debounce } from "lodash"; 
+
+const validateEmail = (email) => {
+	const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+	return re.test(email);
+};
 
 const RegisterPage = () => {
 	const [formData, setFormData] = useState({
@@ -28,8 +33,8 @@ const RegisterPage = () => {
 	const from = location.state?.from || "/";
 
 	// Debounce function để kiểm tra email
-	const checkEmailDebounced = useCallback(
-		debounce(async (email) => {
+	const checkEmailDebounced = useMemo(
+		() => debounce(async (email) => {
 			if (!email || email.length < 3 || !validateEmail(email)) {
 				setEmailAvailable(null);
 				return;
@@ -60,12 +65,6 @@ const RegisterPage = () => {
 		}, 500),
 		[]
 	);
-
-	// Hàm validate email format
-	const validateEmail = (email) => {
-		const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-		return re.test(email);
-	};
 
 	// Validate form
 	const validateForm = () => {

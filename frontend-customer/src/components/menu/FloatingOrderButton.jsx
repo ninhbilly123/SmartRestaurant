@@ -2,10 +2,12 @@ import React, { useMemo } from 'react';
 import { Receipt, Clock, Utensils, BellRing, ChevronRight } from 'lucide-react';
 
 const FloatingOrderButton = ({ order, onClick }) => {
-  if (!order) return null;
-
   // Logic tính toán trạng thái (giống tracking bar nhưng gọn hơn)
   const statusInfo = useMemo(() => {
+    if (!order) {
+        return null;
+    }
+
     const items = order.items || [];
     
     // 1. Có món đã xong -> Màu xanh lá (Quan trọng nhất)
@@ -38,7 +40,9 @@ const FloatingOrderButton = ({ order, onClick }) => {
         icon: <Receipt size={20} />,
         label: 'Đơn của bạn' 
     };
-  }, [order.items]);
+  }, [order]);
+
+  if (!order || !statusInfo) return null;
 
   return (
     <button 

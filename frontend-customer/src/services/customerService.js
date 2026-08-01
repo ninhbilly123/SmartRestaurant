@@ -1,4 +1,12 @@
 import { customerApi, publicApi } from "../config/api";
+import {
+  clearCustomerAuth,
+  getCustomerInfo,
+  getCustomerToken,
+  isCustomerLoggedIn,
+  setCustomerInfo,
+  setCustomerSession,
+} from "../utils/customerAuth";
 
 class CustomerService {
   // ========== PUBLIC METHODS ==========
@@ -29,10 +37,7 @@ class CustomerService {
       if (response.data.success && response.data.data) {
         const { customer, accessToken } = response.data.data;
 
-        // Lưu vào localStorage GIỐNG NHƯ LOGIN
-        localStorage.setItem("customer_token", accessToken);
-        localStorage.setItem("customer_info", JSON.stringify(customer));
-        localStorage.setItem("auth_method", "google"); // Lưu phương thức đăng nhập là Google
+        setCustomerSession(accessToken, customer, "google");
 
         console.log(
           "[CUSTOMER SERVICE] Đồng bộ thành công, đã lưu vào localStorage"
@@ -83,9 +88,7 @@ class CustomerService {
       if (response.data.success && response.data.data) {
         const { customer, accessToken } = response.data.data;
 
-        localStorage.setItem("customer_token", accessToken);
-        localStorage.setItem("customer_info", JSON.stringify(customer));
-        localStorage.setItem("auth_method", "email");  // Lưu phương thức đăng nhập là email
+        setCustomerSession(accessToken, customer, "email");
 
         return {
           success: true,
@@ -310,9 +313,9 @@ class CustomerService {
 
       // Cập nhật localStorage với avatar mới
       if (response.data.success) {
-        const customerInfo = JSON.parse(localStorage.getItem("customer_info") || "{}");
+        const customerInfo = getCustomerInfo() || {};
         customerInfo.avatar = response.data.data.avatar;
-        localStorage.setItem("customer_info", JSON.stringify(customerInfo));
+        setCustomerInfo(customerInfo);
       }
 
       return response.data;
@@ -585,16 +588,13 @@ class CustomerService {
 
   // 14. Kiểm tra đã đăng nhập
   isLoggedIn() {
-    const token = localStorage.getItem("customer_token");
-    const customerInfo = localStorage.getItem("customer_info");
-    return !!(token && customerInfo);
+    return isCustomerLoggedIn();
   }
 
   // 15. Lấy thông tin customer hiện tại
   getCurrentCustomer() {
     try {
-      const customerInfo = localStorage.getItem("customer_info");
-      return customerInfo ? JSON.parse(customerInfo) : null;
+      return getCustomerInfo();
     } catch {
       return null;
     }
@@ -602,13 +602,12 @@ class CustomerService {
 
   // 16. Lấy token
   getToken() {
-    return localStorage.getItem("customer_token");
+    return getCustomerToken();
   }
 
   // 17. Đăng xuất
   logout() {
-    localStorage.removeItem("customer_token");
-    localStorage.removeItem("customer_info");
+    clearCustomerAuth();
   }
 
   // 18. Kiểm tra email đã verify
@@ -643,7 +642,7 @@ class CustomerService {
       });
 
       if (response.data.success && response.data.data?.accessToken) {
-        localStorage.setItem("customer_token", response.data.data.accessToken);
+        setCustomerSession(response.data.data.accessToken);
         return true;
       }
       return false;
@@ -730,7 +729,8 @@ class CustomerService {
   async createMomoPayment(orderId, amount) {
     try {
       const response = await publicApi.post("/customer/payment/momo-callback", {
-        orderId
+        orderId,
+        amount,
       });
       return response.data;
     } catch (error) {

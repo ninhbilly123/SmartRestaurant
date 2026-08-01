@@ -357,7 +357,7 @@ const VerifyEmailPage = () => {
 					</div>
 
 					{/* Debug info (chỉ hiển thị trong development) */}
-					{process.env.NODE_ENV === 'development' && (
+					{import.meta.env.DEV && (
 						<div className="mt-6 p-4 bg-gray-100 rounded-lg border border-gray-300">
 							<details className="cursor-pointer">
 								<summary className="font-bold text-sm text-gray-700">Debug Info</summary>

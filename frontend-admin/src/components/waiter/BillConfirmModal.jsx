@@ -1,24 +1,21 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { X, Printer, Send, Calculator } from "lucide-react";
 
 const BillConfirmModal = ({ isOpen, onClose, order, onConfirm }) => {
-  if (!isOpen || !order) return null;
-
   // State quản lý các khoản tiền
   const [discountType, setDiscountType] = useState("percent"); // 'percent' | 'fixed'
   const [discountValue, setDiscountValue] = useState(0);
   const [taxPercent, setTaxPercent] = useState(0); // Thuế theo %
   const [note, setNote] = useState("");
 
-  // 1. Reset state mỗi khi mở modal với order mới
-  useEffect(() => {
-    if (isOpen) {
-        setDiscountType("percent");
-        setDiscountValue(0);
-        setTaxPercent(0);
-        setNote("");
-    }
-  }, [isOpen, order]);
+  const resetBillState = () => {
+    setDiscountType("percent");
+    setDiscountValue(0);
+    setTaxPercent(0);
+    setNote("");
+  };
+
+  if (!isOpen || !order) return null;
   
   // 2. Tính toán Subtotal (Tổng tiền món chưa giảm)
   const calculateSubtotal = () => {
@@ -68,6 +65,12 @@ const BillConfirmModal = ({ isOpen, onClose, order, onConfirm }) => {
         note: note,
     };
     onConfirm(order.id, billData);
+    resetBillState();
+  };
+
+  const handleClose = () => {
+    resetBillState();
+    onClose();
   };
 
   // Xử lý In hóa đơn
@@ -136,7 +139,7 @@ const BillConfirmModal = ({ isOpen, onClose, order, onConfirm }) => {
           <h3 className="font-bold flex items-center gap-2">
             <Calculator size={20}/> Xác nhận hóa đơn - Bàn {order.table?.table_number}
           </h3>
-          <button onClick={onClose} className="hover:bg-blue-700 p-1 rounded"><X size={20}/></button>
+          <button onClick={handleClose} className="hover:bg-blue-700 p-1 rounded"><X size={20}/></button>
         </div>
 
         {/* Body */}

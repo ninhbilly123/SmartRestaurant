@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Star, ThumbsUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import CustomerService from '../../services/customerService'; // Import trực tiếp
 
@@ -10,11 +10,7 @@ const ReviewList = ({ menuItemId, showTitle = true }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  useEffect(() => {
-    fetchReviews();
-  }, [menuItemId, sortBy, currentPage]);
-
-  const fetchReviews = async () => {
+  const fetchReviews = useCallback(async () => {
     try {
       setLoading(true);
       // Gọi API chuẩn
@@ -34,7 +30,11 @@ const ReviewList = ({ menuItemId, showTitle = true }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [menuItemId, sortBy, currentPage]);
+
+  useEffect(() => {
+    fetchReviews();
+  }, [fetchReviews]);
 
   const renderStars = (rating) => {
     return (

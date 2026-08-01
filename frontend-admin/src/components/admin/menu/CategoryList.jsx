@@ -385,7 +385,7 @@ const CategoryList = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {sortedCategories.map((category, index) => (
+                  {sortedCategories.map((category) => (
                     <tr
                       key={category.id}
                       className="hover:bg-gradient-to-r hover:from-purple-50 hover:to-transparent transition-all"

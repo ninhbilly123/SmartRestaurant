@@ -1,11 +1,11 @@
-// src/config/api.js (hoặc apiConfig.js)
 import axios from "axios";
 import { clearAuth, getAuthToken } from "../utils/auth";
 
-const BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+const API_HOST = (import.meta.env.VITE_API_BASE_URL || "http://localhost:5000")
+  .replace(/\/api\/?$/, "")
+  .replace(/\/$/, "");
 
-const API_BASE_URL = `${BASE_URL}/api`;
+const API_BASE_URL = `${API_HOST}/api`;
 
 const adminApi = axios.create({
   baseURL: `${API_BASE_URL}/admin`,
@@ -14,7 +14,6 @@ const adminApi = axios.create({
   },
 });
 
-// Public API (không cần /admin prefix)
 const publicApi = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -22,12 +21,9 @@ const publicApi = axios.create({
   },
 });
 
-// Interceptor chung
 const setupInterceptors = (instance) => {
-  // Request interceptor
   instance.interceptors.request.use(
     (config) => {
-      // Add auth token here when authentication is implemented
       const token = getAuthToken();
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
@@ -39,19 +35,12 @@ const setupInterceptors = (instance) => {
     }
   );
 
-  // Response interceptor
   instance.interceptors.response.use(
     (response) => response,
     (error) => {
-      // Xử lý lỗi 401 (Token hết hạn hoặc không hợp lệ)
       if (error.response && (error.response.status === 401 || error.response.status === 403)) {
         console.warn("Token hết hạn hoặc không hợp lệ. Đang đăng xuất...");
-        
-        // Xóa token bẩn
         clearAuth();
-        
-        // Đá về trang Login (Dùng window.location để refresh lại app sạch sẽ)
-        // Vì bạn dùng HashRouter nên đường dẫn là /#/login
         window.location.href = '/#/login'; 
       }
 
@@ -60,7 +49,7 @@ const setupInterceptors = (instance) => {
         const message =
           error.response.data?.message ||
           error.response.data?.error ||
-          "An error occurred";
+          "Đã có lỗi xảy ra";
         return Promise.reject(new Error(message));
       } else if (error.request) {
         return Promise.reject(
@@ -73,7 +62,6 @@ const setupInterceptors = (instance) => {
   );
 };
 
-// Áp dụng interceptors cho cả hai instances
 setupInterceptors(adminApi);
 setupInterceptors(publicApi);
 

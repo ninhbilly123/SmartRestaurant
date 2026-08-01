@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import menuService from "../../../services/menuService";
 import Button from "../../common/Button";
@@ -42,10 +42,6 @@ const MenuItemForm = () => {
 
   const [errors, setErrors] = useState({});
 
-  useEffect(() => {
-    fetchInitialData();
-  }, [id]);
-
   // Cleanup preview URLs when component unmounts
   useEffect(() => {
     return () => {
@@ -57,7 +53,7 @@ const MenuItemForm = () => {
     };
   }, [pendingPhotos]);
 
-  const fetchInitialData = async () => {
+  const fetchInitialData = useCallback(async () => {
     try {
       setFetchLoading(true);
       const [categoriesRes, modifiersRes] = await Promise.all([
@@ -90,7 +86,11 @@ const MenuItemForm = () => {
     } finally {
       setFetchLoading(false);
     }
-  };
+  }, [id, isEditing]);
+
+  useEffect(() => {
+    fetchInitialData();
+  }, [fetchInitialData]);
 
   const validateForm = () => {
     const newErrors = {};

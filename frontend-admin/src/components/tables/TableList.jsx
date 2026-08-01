@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import tableService from "../../services/tableService";
 import Button from "../common/Button";
@@ -33,17 +33,7 @@ const TableList = () => {
 		action: null,
 	});
 
-	// Fetch tables on component mount
-	useEffect(() => {
-		fetchTables();
-	}, []);
-
-	// Apply filters and sorting when tables or filters change
-	useEffect(() => {
-		applyFiltersAndSort();
-	}, [tables, filters, sortBy, sortOrder]);
-
-	const fetchTables = async () => {
+	const fetchTables = useCallback(async () => {
 		try {
 			setLoading(true);
 			setError(null);
@@ -54,13 +44,23 @@ const TableList = () => {
 		} finally {
 			setLoading(false);
 		}
-	};
+	}, []);
 
-	const applyFiltersAndSort = () => {
+	const applyFiltersAndSort = useCallback(() => {
 		let result = tableService.filterTables(tables, filters);
 		result = tableService.sortTables(result, sortBy, sortOrder);
 		setFilteredTables(result);
-	};
+	}, [tables, filters, sortBy, sortOrder]);
+
+	// Fetch tables on component mount
+	useEffect(() => {
+		fetchTables();
+	}, [fetchTables]);
+
+	// Apply filters and sorting when tables or filters change
+	useEffect(() => {
+		applyFiltersAndSort();
+	}, [applyFiltersAndSort]);
 
 	const handleFilterChange = (e) => {
 		const { name, value } = e.target;
@@ -405,7 +405,7 @@ const TableList = () => {
 									</tr>
 								</thead>
 								<tbody className="bg-white divide-y divide-gray-100">
-									{filteredTables.map((table, index) => (
+									{filteredTables.map((table) => (
 										<tr
 											key={table.id}
 											className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-transparent transition-all"

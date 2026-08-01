@@ -11,13 +11,13 @@ import {
   CreditCard, // Mới
   DollarSign, // Mới
 } from "lucide-react";
-import axios from "axios";
 import { io } from "socket.io-client";
 import BillConfirmModal from "./BillConfirmModal"; // Đảm bảo đường dẫn đúng
+import waiterService from "../../services/waiterService";
+import { clearAuth, getAuthToken } from "../../utils/auth";
 
 // Cấu hình URL
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
-const API_URL = `${API_BASE}/api`;
 const SOCKET_URL = API_BASE;
 
 // Âm thanh thông báo (base64)
@@ -54,7 +54,7 @@ const WaiterDashboard = () => {
   // --- 0. HÀM ĐĂNG XUẤT ---
   const handleLogout = () => {
     if (window.confirm("Bạn có chắc chắn muốn đăng xuất?")) {
-      localStorage.removeItem("token");
+      clearAuth();
       navigate("/login");
     }
   };
@@ -62,17 +62,14 @@ const WaiterDashboard = () => {
   // --- 1. SETUP DATA & SOCKET ---
   useEffect(() => {
     const fetchOrders = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) {
+      if (!getAuthToken()) {
         navigate("/login");
         return;
       }
       try {
-        const res = await axios.get(`${API_URL}/admin/orders`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.data.success) {
-          setOrders(res.data.data || []);
+        const res = await waiterService.getOrders();
+        if (res.success) {
+          setOrders(res.data || []);
         }
       } catch (err) {
         console.error("Lỗi API:", err);
@@ -114,8 +111,6 @@ const WaiterDashboard = () => {
 
   // A. Update trạng thái (Duyệt/Bưng) - Logic cũ
   const handleUpdateStatus = async (orderId, status) => {
-    const token = localStorage.getItem("token");
-
     // Optimistic UI
     setOrders((prev) =>
       prev.map((o) => {
@@ -138,11 +133,7 @@ const WaiterDashboard = () => {
     );
 
     try {
-      await axios.put(
-        `${API_URL}/admin/orders/${orderId}/status`,
-        { status },
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
+      await waiterService.updateOrderStatus(orderId, status);
     } catch (err) {
       console.error(err);
       window.location.reload(); // Reload nếu lỗi để sync lại data
@@ -156,7 +147,6 @@ const WaiterDashboard = () => {
     );
     if (reason === null) return;
 
-    const token = localStorage.getItem("token");
     setOrders((prev) =>
       prev.map((o) => {
         if (String(o.id) === String(orderId)) {
@@ -172,11 +162,7 @@ const WaiterDashboard = () => {
     );
 
     try {
-      await axios.put(
-        `${API_URL}/admin/orders/items/${itemId}/reject`,
-        { reason },
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
+      await waiterService.rejectOrderItem(itemId, reason);
     } catch (err) {
       alert("Lỗi: " + err.message);
     }
@@ -192,13 +178,8 @@ const WaiterDashboard = () => {
 
   // Bước 2: Gọi API Confirm Bill (Gửi từ Modal)
   const handleSendBill = async (orderId, billData) => {
-    const token = localStorage.getItem("token");
     try {
-      await axios.put(
-        `${API_URL}/admin/orders/${orderId}/confirm-bill`,
-        billData,
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
+      await waiterService.confirmBill(orderId, billData);
       setIsBillModalOpen(false);
       // alert("Đã gửi hóa đơn cho khách!"); // Có thể bỏ alert cho mượt
     } catch (err) {
@@ -210,13 +191,8 @@ const WaiterDashboard = () => {
   const handleConfirmCashPayment = async (orderId) => {
     if (!window.confirm("Xác nhận đã thu đủ tiền mặt từ khách?")) return;
 
-    const token = localStorage.getItem("token");
     try {
-      await axios.put(
-        `${API_URL}/admin/orders/${orderId}/pay`,
-        { payment_method: "cash" },
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
+      await waiterService.confirmCashPayment(orderId);
       // Ẩn đơn hàng sau 1s
       setTimeout(
         () => setOrders((prev) => prev.filter((o) => o.id !== orderId)),

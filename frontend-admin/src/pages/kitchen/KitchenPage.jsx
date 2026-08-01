@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import kitchenService from "../../services/kitchenService";
 import OrderCard from "../../components/kitchen/OrderCard";
 import { io } from "socket.io-client";
+import { clearAuth } from "../../utils/auth";
 
 const SOCKET_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 // Âm thanh thông báo
@@ -34,7 +35,7 @@ const Kitchen = () => {
   // --- 0. HÀM ĐĂNG XUẤT ---
   const handleLogout = () => {
     if (window.confirm("Bạn có chắc chắn muốn đăng xuất?")) {
-      localStorage.removeItem("token");
+      clearAuth();
       navigate("/login");
     }
   };

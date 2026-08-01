@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   X,
   Clock,
@@ -29,14 +29,9 @@ const OrderDetailModal = ({ order, onClose, onRequestBill }) => {
   const [reviewableItemIds, setReviewableItemIds] = useState(new Set());
   const [checkingReviewStatus, setCheckingReviewStatus] = useState(false);
 
-  // --- 1. LOGIC CHECK TRẠNG THÁI REVIEW ---
-  useEffect(() => {
-    if (order && order.status === "completed") {
-      checkReviewableStatus();
-    }
-  }, [order]);
+  const checkReviewableStatus = useCallback(async () => {
+    if (!order) return;
 
-  const checkReviewableStatus = async () => {
     setCheckingReviewStatus(true);
     try {
       const res = await customerService.getReviewableItems(order.id);
@@ -48,7 +43,14 @@ const OrderDetailModal = ({ order, onClose, onRequestBill }) => {
     } finally {
       setCheckingReviewStatus(false);
     }
-  };
+  }, [order]);
+
+  // --- 1. LOGIC CHECK TRẠNG THÁI REVIEW ---
+  useEffect(() => {
+    if (order && order.status === "completed") {
+      checkReviewableStatus();
+    }
+  }, [order, checkReviewableStatus]);
 
   if (!order) return null;
 

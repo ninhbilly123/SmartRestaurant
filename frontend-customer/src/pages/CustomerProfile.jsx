@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import CustomerService from "../services/customerService";
 import { toast } from "react-toastify";
+import { getAuthMethod, setCustomerInfo } from "../utils/customerAuth";
 
 const CustomerProfile = () => {
   const [customer, setCustomer] = useState(null);
@@ -44,12 +45,6 @@ const CustomerProfile = () => {
   const fromPath = getFromPath();
 
   useEffect(() => {
-    fetchProfile();
-    const method = localStorage.getItem("auth_method");
-    setAuthMethod(method);
-  }, []);
-
-  useEffect(() => {
     if (customer) {
       setEditData({
         username: customer.username || "",
@@ -58,7 +53,7 @@ const CustomerProfile = () => {
     }
   }, [customer]);
 
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     try {
       setLoading(true);
       if (!CustomerService.isLoggedIn()) {
@@ -73,7 +68,13 @@ const CustomerProfile = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [fromPath, navigate]);
+
+  useEffect(() => {
+    fetchProfile();
+    const method = getAuthMethod();
+    setAuthMethod(method);
+  }, [fetchProfile]);
 
   // Hàm lấy chữ cái đầu cho avatar
   const getInitial = () => {
@@ -120,13 +121,13 @@ const CustomerProfile = () => {
       const response = await CustomerService.updateAvatar(file);
       
       if (response.success) {
-        // Cập nhật avatar trong state và localStorage
+        // Cập nhật avatar trong state và auth storage
         const updatedCustomer = {
           ...customer,
           avatar: response.data?.avatar || response.avatar || response.data?.customer?.avatar
         };
         
-        localStorage.setItem("customer_info", JSON.stringify(updatedCustomer));
+        setCustomerInfo(updatedCustomer);
         setCustomer(updatedCustomer);
         
         toast.success("Cập nhật ảnh đại diện thành công");
@@ -154,13 +155,13 @@ const CustomerProfile = () => {
       const response = await CustomerService.deleteAvatar();
       
       if (response.success) {
-        // Cập nhật state và localStorage
+        // Cập nhật state và auth storage
         const updatedCustomer = {
           ...customer,
           avatar: null
         };
         
-        localStorage.setItem("customer_info", JSON.stringify(updatedCustomer));
+        setCustomerInfo(updatedCustomer);
         setCustomer(updatedCustomer);
         
         setShowDeleteConfirm(false);
@@ -288,12 +289,12 @@ const CustomerProfile = () => {
       const response = await CustomerService.updateProfile(editData);
       
       if (response.success) {
-        // Cập nhật thông tin trong localStorage
+      // Cập nhật thông tin trong auth storage
         const updatedCustomer = {
           ...customer,
           ...editData
         };
-        localStorage.setItem("customer_info", JSON.stringify(updatedCustomer));
+      setCustomerInfo(updatedCustomer);
         setCustomer(updatedCustomer);
         
         setIsEditing(false);

@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import Swal from "sweetalert2";
 import CustomerService from "../../services/customerService";
+import { savePaymentSession } from "../../utils/tableSession";
 
 // URL Socket lấy từ env
 const SOCKET_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
@@ -90,8 +91,7 @@ const OrderTracking = ({ orderId, onOrderMore, tableId }) => {
         // MoMo: Gọi API tạo thanh toán và redirect
         try {
           // Lưu thông tin bàn để redirect về sau
-          localStorage.setItem("current_table_id", tableId);
-          localStorage.setItem("current_order_id", orderId);
+          savePaymentSession(tableId, orderId);
 
           const momoResponse = await CustomerService.createMomoPayment(
             orderId,
@@ -134,7 +134,7 @@ const OrderTracking = ({ orderId, onOrderMore, tableId }) => {
               selectedPaymentMethod,
             );
             Swal.fire("Thành công!", "Thanh toán hoàn tất.", "success");
-          } catch (err) {
+          } catch {
             Swal.fire("Lỗi", "Không thể hoàn tất thanh toán.", "error");
           }
         }, 2000);

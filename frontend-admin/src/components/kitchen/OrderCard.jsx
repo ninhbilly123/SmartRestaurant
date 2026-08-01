@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { CheckCircle, ChefHat, Loader, Clock } from "lucide-react";
-import OrderTimer, { getElapsedSeconds, getTimeStatus } from "./OrderTimer";
+import OrderTimer from "./OrderTimer";
+import { getElapsedSeconds, getTimeStatus } from "./orderTimer.utils";
 import kitchenService from "../../services/kitchenService";
 
 const OrderCard = ({ order, onStartOrder, onReadyOrder, isUpdating }) => {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import tableService from "../../services/tableService";
 import Button from "../common/Button";
@@ -42,14 +42,7 @@ const TableForm = () => {
 	const [error, setError] = useState(null);
 	const [success, setSuccess] = useState(null);
 
-	// Fetch table data if in edit mode
-	useEffect(() => {
-		if (isEditMode) {
-			fetchTable();
-		}
-	}, [id]);
-
-	const fetchTable = async () => {
+	const fetchTable = useCallback(async () => {
 		try {
 			setFetchLoading(true);
 			setError(null);
@@ -67,7 +60,14 @@ const TableForm = () => {
 		} finally {
 			setFetchLoading(false);
 		}
-	};
+	}, [id]);
+
+	// Fetch table data if in edit mode
+	useEffect(() => {
+		if (isEditMode) {
+			fetchTable();
+		}
+	}, [fetchTable, isEditMode]);
 
 	const handleChange = (e) => {
 		const { name, value } = e.target;

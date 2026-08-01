@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import supabaseAuthService from '../services/supabaseAuthService';
 import customerService from '../services/customerService';
+import { setCustomerSession } from '../utils/customerAuth';
 
 const AuthCallbackPage = () => {
   const navigate = useNavigate();
@@ -10,8 +11,6 @@ const AuthCallbackPage = () => {
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        console.log("[CALLBACK] Đang xử lý Google OAuth callback...");
-        
         // Lấy tham số từ URL
         const searchParams = new URLSearchParams(location.search);
         const tableId = searchParams.get('table');
@@ -34,8 +33,6 @@ const AuthCallbackPage = () => {
           username : user.user_metadata?.full_name || user.email.split('@')[0],
         };
         
-        // Gọi API đồng bộ qua customerService
-        // customerService cần có hàm syncGoogleUser
         const syncResult = await customerService.syncGoogleUser(syncData);
         
         if (!syncResult.success) {
@@ -43,13 +40,11 @@ const AuthCallbackPage = () => {
           throw new Error(syncResult.error || 'Không thể đồng bộ với hệ thống');
         }
 
-        console.log("[CALLBACK] Đồng bộ thành công:", syncResult.data);
-        
-        // Lưu thông tin user vào localStorage (giống như login thường)
-        if (syncResult.data?.token) {
-          localStorage.setItem('customer_token', syncResult.data.token);
-          localStorage.setItem('customer_info', JSON.stringify(syncResult.data));
-          localStorage.setItem('auth_method', 'google');
+        const customer = syncResult.customer || syncResult.data?.customer || syncResult.data;
+        const accessToken = syncResult.accessToken || syncResult.data?.accessToken || syncResult.data?.token;
+
+        if (accessToken) {
+          setCustomerSession(accessToken, customer, 'google');
         }
 
         // Tạo redirect path
@@ -66,14 +61,12 @@ const AuthCallbackPage = () => {
             : `${redirectPath}?${params.toString()}`;
         }
 
-        console.log("[CALLBACK] Redirect về:", redirectPath);
-        
         // Redirect về trang đích với thông tin user
         navigate(redirectPath, {
           replace: true,
           state: {
             message: 'Đăng nhập Google thành công!',
-            user: syncResult.data,
+            user: customer,
             socialLogin: true
           }
         });

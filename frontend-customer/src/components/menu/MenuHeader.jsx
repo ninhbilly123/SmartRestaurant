@@ -1,8 +1,15 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import {
+  clearCustomerAuth,
+  getAuthMethod,
+  getCustomerInfo,
+} from "../../utils/customerAuth";
 
 const MenuHeader = ({ tableNumber, cartItemCount }) => {
-  const [customer, setCustomer] = useState(null);
+  const [customer, setCustomer] = useState(() => {
+    return getCustomerInfo();
+  });
   const [showDropdown, setShowDropdown] = useState(false);
   const [avatarError, setAvatarError] = useState(false);
   const [dropdownAvatarError, setDropdownAvatarError] = useState(false);
@@ -12,29 +19,8 @@ const MenuHeader = ({ tableNumber, cartItemCount }) => {
   // Hàm tiện ích để tạo state chứa URL hiện tại (bao gồm cả params table/token)
   const navigationState = { from: location.pathname + location.search };
 
-  // Kiểm tra thông tin khách hàng khi component mount
-  useEffect(() => {
-    const customerInfo = localStorage.getItem("customer_info");
-    if (customerInfo) {
-      try {
-        setCustomer(JSON.parse(customerInfo));
-      } catch (error) {
-        console.error("Error parsing customer info:", error);
-        localStorage.removeItem("customer_info");
-        localStorage.removeItem("auth_method");
-        localStorage.removeItem("customer_token");
-        setCustomer(null);
-        setShowDropdown(false);
-        // Reload trang để xóa các trạng thái cũ
-        window.location.reload();
-      }
-    }
-  }, []);
-
   const handleLogout = () => {
-    localStorage.removeItem("customer_token");
-    localStorage.removeItem("customer_info");
-    localStorage.removeItem("auth_method");
+    clearCustomerAuth();
     setCustomer(null);
     setShowDropdown(false);
     // Reload trang để xóa các trạng thái cũ
@@ -72,7 +58,7 @@ const MenuHeader = ({ tableNumber, cartItemCount }) => {
 
   // Hàm lấy loại tài khoản
   const getAccountType = () => {
-    const authMethod = localStorage.getItem("auth_method");
+    const authMethod = getAuthMethod();
     if (authMethod === "google") {
       return "Google Account";
     }

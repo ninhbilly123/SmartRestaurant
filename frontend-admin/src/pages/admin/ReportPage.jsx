@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   BarChart, Bar, Cell 
@@ -26,11 +26,7 @@ const ReportPage = () => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
   };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       // Gọi song song 4 API (Thêm getPeakHours)
@@ -64,7 +60,11 @@ const ReportPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [dateRange.fromDate, dateRange.toDate]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleFilter = () => {
     fetchData();

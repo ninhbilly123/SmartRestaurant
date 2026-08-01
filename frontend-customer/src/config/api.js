@@ -1,10 +1,11 @@
-// src/config/api.js (hoặc apiConfig.js)
 import axios from "axios";
+import { getCustomerToken } from "../utils/customerAuth";
 
-const BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+const API_HOST = (import.meta.env.VITE_API_BASE_URL || "http://localhost:5000")
+  .replace(/\/api\/?$/, "")
+  .replace(/\/$/, "");
 
-const API_BASE_URL = `${BASE_URL}/api`
+const API_BASE_URL = `${API_HOST}/api`;
 
 const adminApi = axios.create({
   baseURL: `${API_BASE_URL}/admin`,
@@ -13,7 +14,6 @@ const adminApi = axios.create({
   },
 });
 
-// Public API (không cần /admin prefix)
 const publicApi = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -21,7 +21,6 @@ const publicApi = axios.create({
   },
 });
 
-// ==== THÊM: Customer API (dành riêng cho khách hàng) ====
 const customerApi = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -29,24 +28,14 @@ const customerApi = axios.create({
   },
 });
 
-// Interceptor chung
 const setupInterceptors = (instance) => {
-  // Request interceptor
   instance.interceptors.request.use(
-    (config) => {
-      // Add auth token here when authentication is implemented
-      // const token = localStorage.getItem('authToken');
-      // if (token) {
-      //   config.headers.Authorization = `Bearer ${token}`;
-      // }
-      return config;
-    },
+    (config) => config,
     (error) => {
       return Promise.reject(error);
     }
   );
 
-  // Response interceptor
   instance.interceptors.response.use(
     (response) => response,
     (error) => {
@@ -54,7 +43,7 @@ const setupInterceptors = (instance) => {
         const message =
           error.response.data?.message ||
           error.response.data?.error ||
-          "An error occurred";
+          "Đã có lỗi xảy ra";
         return Promise.reject(new Error(message));
       } else if (error.request) {
         return Promise.reject(
@@ -67,15 +56,13 @@ const setupInterceptors = (instance) => {
   );
 };
 
-// Áp dụng interceptors cho cả hai instances
 setupInterceptors(adminApi);
 setupInterceptors(publicApi);
-setupInterceptors(customerApi); // THÊM: Áp dụng cho customerApi
+setupInterceptors(customerApi);
 
-// ==== THÊM: Interceptor riêng cho customerApi ====
 customerApi.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("customer_token");
+    const token = getCustomerToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -86,19 +73,4 @@ customerApi.interceptors.request.use(
   }
 );
 
-// ==== THÊM: Interceptor cho adminApi (nếu cần) ====
-// Để không ảnh hưởng đến code hiện tại, chỉ thêm nếu cần
-// adminApi.interceptors.request.use(
-//   (config) => {
-//     const token = localStorage.getItem("token"); // token admin
-//     if (token) {
-//       config.headers.Authorization = `Bearer ${token}`;
-//     }
-//     return config;
-//   },
-//   (error) => {
-//     return Promise.reject(error);
-//   }
-// );
-
-export { adminApi, publicApi, customerApi }; // THÊM: Export customerApi
+export { adminApi, publicApi, customerApi };

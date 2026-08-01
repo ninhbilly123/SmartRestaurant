@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import tableService from "../../services/tableService";
 import Button from "../common/Button";
@@ -13,11 +13,7 @@ const QRCodePage = () => {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 
-	useEffect(() => {
-		fetchTable();
-	}, [id]);
-
-	const fetchTable = async () => {
+	const fetchTable = useCallback(async () => {
 		try {
 			setLoading(true);
 			setError(null);
@@ -28,7 +24,11 @@ const QRCodePage = () => {
 		} finally {
 			setLoading(false);
 		}
-	};
+	}, [id]);
+
+	useEffect(() => {
+		fetchTable();
+	}, [fetchTable]);
 
 	if (loading) {
 		return (

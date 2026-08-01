@@ -6,4 +6,4 @@ export {
   formatTime,
   getElapsedSeconds,
   getTimeStatus,
-} from "./OrderTimer";
+} from "./orderTimer.utils";

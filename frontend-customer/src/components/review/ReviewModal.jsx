@@ -2,14 +2,15 @@ import React, { useState } from 'react';
 import { Star, X, Loader, Send } from 'lucide-react';
 import Swal from "sweetalert2";
 import CustomerService from '../../services/customerService';
+import { getCustomerInfo } from '../../utils/customerAuth';
 
 const ReviewModal = ({ isOpen, onClose, menuItem, orderId, onSuccess }) => {
   const [rating, setRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
   const [comment, setComment] = useState('');
-  // Lấy tên khách từ localStorage hoặc để trống
+  // Lấy tên khách từ auth storage hoặc để trống
   const [customerName, setCustomerName] = useState(
-    JSON.parse(localStorage.getItem('customer_info') || '{}')?.full_name || ''
+    getCustomerInfo()?.full_name || ''
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
 

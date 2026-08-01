@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   X,
   Star,
@@ -34,14 +34,7 @@ const MenuItemDetailModal = ({
   const [currentPage, setCurrentPage] = useState(1); // Trang hiện tại user đang xem
   const [isLoadingReviews, setIsLoadingReviews] = useState(false);
 
-  // --- LOGIC GỌI API ---
-  useEffect(() => {
-    if (activeTab === "reviews" && item?.id) {
-      fetchReviews(currentPage);
-    }
-  }, [activeTab, item, currentPage]); // Gọi lại khi đổi Tab hoặc đổi Trang
-
-  const fetchReviews = async (page) => {
+  const fetchReviews = useCallback(async (page) => {
     setIsLoadingReviews(true);
     try {
       // Gọi API với tham số phân trang (Limit = 5 comment mỗi trang cho gọn Modal)
@@ -74,7 +67,14 @@ const MenuItemDetailModal = ({
     } finally {
       setIsLoadingReviews(false);
     }
-  };
+  }, [item?.id]);
+
+  // --- LOGIC GỌI API ---
+  useEffect(() => {
+    if (activeTab === "reviews" && item?.id) {
+      fetchReviews(currentPage);
+    }
+  }, [activeTab, item?.id, currentPage, fetchReviews]); // Gọi lại khi đổi Tab hoặc đổi Trang
 
   // Hàm chuyển trang
   const handlePageChange = (newPage) => {

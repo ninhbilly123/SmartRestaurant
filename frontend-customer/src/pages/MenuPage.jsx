@@ -22,6 +22,7 @@ import OrderDetailModal from "../components/menu/OrderDetailModal";
 import MenuItemDetailModal from "../components/menu/MenuItemDetailModal";
 import FloatingOrderButton from "../components/menu/FloatingOrderButton";
 import BillModal from "../components/menu/BillModal";
+import { saveTableSession } from "../utils/tableSession";
 
 const SOCKET_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
@@ -234,9 +235,8 @@ const MenuPage = () => {
         if (response.success) {
           setTableInfo(response.data);
 
-          // Lưu tableId và token vào localStorage để dùng sau khi thanh toán redirect về
-          localStorage.setItem("current_table_id", tableId);
-          localStorage.setItem("current_qr_token", token);
+          // Lưu session bàn để dùng sau khi thanh toán redirect về
+          saveTableSession(tableId, token);
 
           // 2. Check xem bàn này có đơn chưa (Active Order)
           try {
@@ -312,7 +312,7 @@ const MenuPage = () => {
       setCategories(categoriesWithItems);
       // Mặc định chọn tab "Tất cả"
       setActiveCategory("all");
-    } catch (err) {
+    } catch {
       setMenuError("Không thể hiển thị thực đơn.");
     } finally {
       setMenuLoading(false);
@@ -699,11 +699,6 @@ const MenuPage = () => {
 
   // Lấy tất cả items từ tất cả categories
   const allMenuItems = categories.flatMap((cat) => cat.items || []);
-
-  const activeCategoryData =
-    activeCategory === "all"
-      ? { id: "all", name: "Tất cả món", items: allMenuItems }
-      : categories.find((cat) => cat.id === activeCategory);
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">

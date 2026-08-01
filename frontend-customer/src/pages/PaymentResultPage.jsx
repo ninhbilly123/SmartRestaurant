@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { CheckCircle, XCircle, Loader, Home, RefreshCw } from "lucide-react";
 import CustomerService from "../services/customerService";
+import { getTableSession } from "../utils/tableSession";
 
 const PaymentResultPage = () => {
   const [searchParams] = useSearchParams();
@@ -94,9 +95,8 @@ const PaymentResultPage = () => {
   }, [searchParams]);
 
   const handleGoToMenu = () => {
-    // Lấy tableId và token từ localStorage nếu có
-    const tableId = localStorage.getItem("current_table_id");
-    const token = localStorage.getItem("current_qr_token");
+    // Lấy tableId và token đã lưu trước khi chuyển sang cổng thanh toán
+    const { tableId, token } = getTableSession();
 
     if (tableId && token) {
       navigate(`/menu?table=${tableId}&token=${token}`);

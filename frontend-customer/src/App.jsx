@@ -1,30 +1,38 @@
-import React from "react";
+import React, { Suspense, lazy } from "react";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
 } from "react-router-dom";
-import MenuPage from "./pages/MenuPage";
-import CustomerLoginPage from "./pages/CustomerLoginPage";
-import RegisterPage from "./pages/RegisterPage";
-import CustomerProfile from "./pages/CustomerProfile";
-import OrderHistoryPage from "./pages/OrderHistoryPage";
-import OrderDetailPage from "./pages/OrderDetailPage";
-import VerifyEmailPage from "./pages/VerifyEmailPage";
-import PaymentResultPage from "./pages/PaymentResultPage";
-// Import các trang quên mật khẩu
-import ForgotPasswordPage from "./pages/ForgotPasswordPage";
-import VerifyForgotPasswordOTPPage from "./pages/VerifyForgotPasswordOTPPage";
-import ResetPasswordPage from "./pages/ResetPasswordPage";
-import AuthCallbackPage from "./pages/AuthCallbackPage";
-import NotFoundPage from "./pages/NotFoundPage";
 import "./App.css";
+
+const MenuPage = lazy(() => import("./pages/MenuPage"));
+const CustomerLoginPage = lazy(() => import("./pages/CustomerLoginPage"));
+const RegisterPage = lazy(() => import("./pages/RegisterPage"));
+const CustomerProfile = lazy(() => import("./pages/CustomerProfile"));
+const OrderHistoryPage = lazy(() => import("./pages/OrderHistoryPage"));
+const OrderDetailPage = lazy(() => import("./pages/OrderDetailPage"));
+const VerifyEmailPage = lazy(() => import("./pages/VerifyEmailPage"));
+const PaymentResultPage = lazy(() => import("./pages/PaymentResultPage"));
+const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"));
+const VerifyForgotPasswordOTPPage = lazy(() => import("./pages/VerifyForgotPasswordOTPPage"));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
+const AuthCallbackPage = lazy(() => import("./pages/AuthCallbackPage"));
+const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
+const ProtectedCustomerRoute = lazy(() => import("./components/common/ProtectedCustomerRoute"));
+
+const routeFallback = (
+  <div className="min-h-screen flex items-center justify-center text-gray-600">
+    Đang tải...
+  </div>
+);
 
 function App() {
   return (
     <Router>
-      <Routes>
+      <Suspense fallback={routeFallback}>
+        <Routes>
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
         {/* Customer-facing menu route - NHẬN QUERY PARAMETERS */}
         <Route path="/menu" element={<MenuPage />} />
@@ -52,15 +60,18 @@ function App() {
         />
 
         {/* Customer profile and order routes */}
-        <Route path="/customer/profile" element={<CustomerProfile />} />
-        <Route path="/customer/orders" element={<OrderHistoryPage />} />
-        <Route path="/customer/orders/:orderId" element={<OrderDetailPage />} />
+        <Route element={<ProtectedCustomerRoute />}>
+          <Route path="/customer/profile" element={<CustomerProfile />} />
+          <Route path="/customer/orders" element={<OrderHistoryPage />} />
+          <Route path="/customer/orders/:orderId" element={<OrderDetailPage />} />
+        </Route>
 
         {/* Nếu khách vào trang chủ, tự động chuyển vào menu */}
         <Route path="/" element={<Navigate to="/menu" replace />} />
 
         <Route path="*" element={<NotFoundPage />} />
-      </Routes>
+        </Routes>
+      </Suspense>
     </Router>
   );
 }

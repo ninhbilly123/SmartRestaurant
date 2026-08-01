@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense, lazy } from "react";
 import {
   HashRouter as Router,
   Routes,
@@ -6,25 +6,6 @@ import {
   Navigate,
   Outlet,
 } from "react-router-dom";
-import Layout from "./components/layout/Layout";
-import TableList from "./components/tables/TableList";
-import TableForm from "./components/tables/TableForm";
-import QRCodePage from "./components/tables/QRCodePage";
-import Login from "./pages/Login";
-import UserManagement from "./pages/admin/UserManagement";
-// ĐÃ XÓA IMPORT SuperAdminRoute
-import HomeRedirect from "./components/common/HomeRedirect";
-import EmployeeManagement from "./pages/admin/EmployeeManagement";
-import KitchenPage from "./pages/kitchen/KitchenPage";
-import WaiterPage from "./pages/waiter/WaiterPage";
-import ReportPage from "./pages/admin/ReportPage";
-
-import {
-  CategoryList,
-  MenuItemList,
-  MenuItemForm,
-  ModifierGroupList,
-} from "./components/admin/menu";
 import {
   getAuthRole,
   getAuthToken,
@@ -32,20 +13,38 @@ import {
 } from "./utils/auth";
 import "./App.css";
 
-// --- 1. HÀM LẤY ROLE TỪ TOKEN ---
-// --- 2. COMPONENT BẢO VỆ CHUNG (RoleRoute) ---
+const Layout = lazy(() => import("./components/layout/Layout"));
+const TableList = lazy(() => import("./components/tables/TableList"));
+const TableForm = lazy(() => import("./components/tables/TableForm"));
+const QRCodePage = lazy(() => import("./components/tables/QRCodePage"));
+const Login = lazy(() => import("./pages/Login"));
+const UserManagement = lazy(() => import("./pages/admin/UserManagement"));
+const HomeRedirect = lazy(() => import("./components/common/HomeRedirect"));
+const EmployeeManagement = lazy(() => import("./pages/admin/EmployeeManagement"));
+const KitchenPage = lazy(() => import("./pages/kitchen/KitchenPage"));
+const WaiterPage = lazy(() => import("./pages/waiter/WaiterPage"));
+const ReportPage = lazy(() => import("./pages/admin/ReportPage"));
+const CategoryList = lazy(() => import("./components/admin/menu/CategoryList"));
+const MenuItemList = lazy(() => import("./components/admin/menu/MenuItemList"));
+const MenuItemForm = lazy(() => import("./components/admin/menu/MenuItemForm"));
+const ModifierGroupList = lazy(() => import("./components/admin/menu/ModifierGroupList"));
+
+const routeFallback = (
+  <div className="min-h-screen flex items-center justify-center text-gray-600">
+    Đang tải...
+  </div>
+);
+
 const RoleRoute = ({ allowedRoles }) => {
   const token = getAuthToken();
   const role = getAuthRole();
 
   if (!token || !role) return <Navigate to="/login" replace />;
 
-  // Nếu Role hợp lệ -> Cho vào
   if (allowedRoles.includes(role)) {
     return <Outlet />;
   }
 
-  // Nếu sai quyền -> Đá về chuồng
   if (role === "kitchen") return <Navigate to="/kitchen" replace />;
   if (role === "waiter") return <Navigate to="/waiter" replace />;
 
@@ -55,8 +54,9 @@ const RoleRoute = ({ allowedRoles }) => {
 function App() {
   return (
     <Router>
-      <Routes>
-        <Route path="/login" element={<Login />} />
+      <Suspense fallback={routeFallback}>
+        <Routes>
+          <Route path="/login" element={<Login />} />
 
         {/* 1. KHU VỰC BẾP */}
         <Route element={<RoleRoute allowedRoles={["kitchen"]} />}>
@@ -92,8 +92,6 @@ function App() {
 
             <Route path="/admin/employees" element={<EmployeeManagement />} />
 
-            {/* --- 4. KHU VỰC SUPER ADMIN (Dùng RoleRoute luôn) --- */}
-            {/* Chỉ user có role 'super_admin' mới vào được đây */}
             <Route element={<RoleRoute allowedRoles={["super_admin"]} />}>
               <Route path="/admin/users" element={<UserManagement />} />
             </Route>
@@ -101,7 +99,8 @@ function App() {
             <Route path="*" element={<div>404 Not Found</div>} />
           </Route>
         </Route>
-      </Routes>
+        </Routes>
+      </Suspense>
     </Router>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import CustomerService from "../services/customerService";
 // Không cần import TableService nữa vì backend trả về đủ rồi
@@ -28,13 +28,10 @@ const OrderHistoryPage = () => {
 
   const fromPath = getFromPath();
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
+      setError("");
       if (!CustomerService.isLoggedIn()) {
         navigate("/customer/login", { state: { from: location.pathname + location.search } });
         return;
@@ -53,7 +50,11 @@ const OrderHistoryPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [location.pathname, location.search, navigate]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   // --- HELPER: BADGE TRẠNG THÁI ---
   const getStatusBadge = (status) => {
@@ -108,7 +109,23 @@ const OrderHistoryPage = () => {
         </div>
 
         {/* Content */}
-        {orders.length === 0 ? (
+        {loading ? (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-16 text-center">
+            <div className="inline-block w-8 h-8 border-4 border-orange-200 border-t-orange-600 rounded-full animate-spin"></div>
+            <p className="mt-4 text-gray-500">Đang tải lịch sử đơn hàng...</p>
+          </div>
+        ) : error ? (
+          <div className="bg-white rounded-2xl shadow-sm border border-red-100 p-16 text-center">
+            <h3 className="text-xl font-bold text-red-700 mb-2">Không thể tải đơn hàng</h3>
+            <p className="text-gray-500 mb-6">{error}</p>
+            <button
+              onClick={fetchData}
+              className="px-6 py-2.5 bg-orange-600 text-white rounded-xl font-bold hover:bg-orange-700 transition-colors"
+            >
+              Thử lại
+            </button>
+          </div>
+        ) : orders.length === 0 ? (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-16 text-center">
             <h3 className="text-xl font-bold text-gray-900 mb-4">Bạn chưa có đơn hàng nào</h3>
             <Link to={fromPath} className="inline-block px-8 py-3 bg-orange-600 text-white rounded-xl font-bold hover:bg-orange-700 transition-colors">

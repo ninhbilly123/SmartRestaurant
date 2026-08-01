@@ -2,10 +2,12 @@ import React, { useMemo } from 'react';
 import { DollarSign, List, Clock, Utensils, CheckCircle, BellRing } from 'lucide-react';
 
 const ActiveOrderBar = ({ order, onViewOrder, onRequestBill }) => {
-  if (!order) return null;
-
   // --- LOGIC THÔNG MINH: Tính toán trạng thái hiển thị dựa trên món ăn ---
   const displayInfo = useMemo(() => {
+    if (!order) {
+        return null;
+    }
+
     const items = order.items || [];
     const orderStatus = order.status;
 
@@ -86,6 +88,8 @@ const ActiveOrderBar = ({ order, onViewOrder, onRequestBill }) => {
             };
     }
   }, [order]);
+
+  if (!order || !displayInfo) return null;
 
   // Format tiền
   const totalAmount = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(order.total_amount || 0);
