@@ -4,7 +4,8 @@ import {
   createTable, 
   getTableById,
   updateTable,
-  updateTableStatus
+  updateTableStatus,
+  deleteTable
 } from '../../controllers/restaurant/table.controller.js';
 import {
   generateQRCode,
@@ -34,6 +35,9 @@ router.put('/:id', updateTable);
 
 //PATCH	/api/admin/tables/:id/status
 router.patch('/:id/status', updateTableStatus);
+
+// DELETE /api/admin/tables/:id
+router.delete('/:id', deleteTable);
 
 // ============= QR Code Routes =============
 // POST /api/admin/tables/:id/qr/generate - Generate/Regenerate QR code

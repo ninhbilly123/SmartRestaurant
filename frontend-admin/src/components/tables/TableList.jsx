@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import tableService from "../../services/tableService";
 import Button from "../common/Button";
-import Card from "../common/Card";
 import Badge from "../common/Badge";
 import Loading from "../common/Loading";
 import Alert from "../common/Alert";
@@ -11,7 +10,8 @@ import ConfirmDialog from "../common/ConfirmDialog";
 const TableList = () => {
 	const navigate = useNavigate();
 	const [tables, setTables] = useState([]);
-	const [filteredTables, setFilteredTables] = useState([]);
+	const [summaryTables, setSummaryTables] = useState([]);
+	const [locationOptions, setLocationOptions] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 	const [success, setSuccess] = useState(null);
@@ -22,6 +22,7 @@ const TableList = () => {
 		location: "all",
 		search: "",
 	});
+	const [debouncedSearch, setDebouncedSearch] = useState("");
 	const [sortBy, setSortBy] = useState("created_at");
 	const [sortOrder, setSortOrder] = useState("desc");
 
@@ -37,30 +38,52 @@ const TableList = () => {
 		try {
 			setLoading(true);
 			setError(null);
-			const response = await tableService.getAllTables();
+			const response = await tableService.getAllTables({
+				status: filters.status,
+				location: filters.location,
+				search: debouncedSearch,
+				sortBy,
+				sortOrder,
+			});
 			setTables(response.data || []);
 		} catch (err) {
 			setError(err.message || "Không thể tải danh sách bàn");
 		} finally {
 			setLoading(false);
 		}
+	}, [debouncedSearch, filters.location, filters.status, sortBy, sortOrder]);
+
+	const fetchLocationOptions = useCallback(async () => {
+		try {
+			const response = await tableService.getAllTables({
+				sortBy: "location",
+				sortOrder: "asc",
+			});
+			const locations = [
+				...new Set((response.data || []).map((table) => table.location).filter(Boolean)),
+			];
+			setSummaryTables(response.data || []);
+			setLocationOptions(locations.map((location) => ({ value: location, label: location })));
+		} catch (err) {
+			console.error("Không thể tải danh sách vị trí bàn:", err);
+		}
 	}, []);
 
-	const applyFiltersAndSort = useCallback(() => {
-		let result = tableService.filterTables(tables, filters);
-		result = tableService.sortTables(result, sortBy, sortOrder);
-		setFilteredTables(result);
-	}, [tables, filters, sortBy, sortOrder]);
+	useEffect(() => {
+		const timeoutId = setTimeout(() => {
+			setDebouncedSearch(filters.search);
+		}, 300);
 
-	// Fetch tables on component mount
+		return () => clearTimeout(timeoutId);
+	}, [filters.search]);
+
 	useEffect(() => {
 		fetchTables();
 	}, [fetchTables]);
 
-	// Apply filters and sorting when tables or filters change
 	useEffect(() => {
-		applyFiltersAndSort();
-	}, [applyFiltersAndSort]);
+		fetchLocationOptions();
+	}, [fetchLocationOptions]);
 
 	const handleFilterChange = (e) => {
 		const { name, value } = e.target;
@@ -120,10 +143,7 @@ const TableList = () => {
 	};
 
 	const getLocationOptions = () => {
-		const locations = [
-			...new Set(tables.map((t) => t.location).filter(Boolean)),
-		];
-		return locations.map((loc) => ({ value: loc, label: loc }));
+		return locationOptions;
 	};
 
 	const SortIcon = ({ field }) => {
@@ -160,7 +180,7 @@ const TableList = () => {
 							<Button
 								variant="outline"
 								onClick={() => handleDownloadAllQR("zip")}
-								disabled={tables.filter((t) => t.qr_token).length === 0}
+								disabled={summaryTables.filter((t) => t.qr_token).length === 0}
 								className="shadow-sm hover:shadow-md transition-all"
 							>
 								<span className="flex items-center gap-2">
@@ -294,7 +314,7 @@ const TableList = () => {
 								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
 							</svg>
 						</div>
-						<p className="text-4xl font-bold">{tables.length}</p>
+						<p className="text-4xl font-bold">{summaryTables.length}</p>
 					</div>
 
 					<div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl shadow-lg p-6 text-white transform hover:scale-105 transition-transform">
@@ -305,7 +325,7 @@ const TableList = () => {
 							</svg>
 						</div>
 						<p className="text-4xl font-bold">
-							{tables.filter((t) => t.status === "active").length}
+							{summaryTables.filter((t) => t.status === "active").length}
 						</p>
 					</div>
 
@@ -317,7 +337,7 @@ const TableList = () => {
 							</svg>
 						</div>
 						<p className="text-4xl font-bold">
-							{tables.filter((t) => t.status === "inactive").length}
+							{summaryTables.filter((t) => t.status === "inactive").length}
 						</p>
 					</div>
 
@@ -329,14 +349,14 @@ const TableList = () => {
 							</svg>
 						</div>
 						<p className="text-4xl font-bold">
-							{tables.reduce((sum, t) => sum + (t.capacity || 0), 0)}
+							{summaryTables.reduce((sum, t) => sum + (t.capacity || 0), 0)}
 						</p>
 					</div>
 				</div>
 
 				{/* Tables List */}
 				<div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-					{filteredTables.length === 0 ? (
+					{tables.length === 0 ? (
 						<div className="text-center py-16 px-4">
 							<div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full mb-4">
 								<svg className="w-10 h-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -405,7 +425,7 @@ const TableList = () => {
 									</tr>
 								</thead>
 								<tbody className="bg-white divide-y divide-gray-100">
-									{filteredTables.map((table) => (
+									{tables.map((table) => (
 										<tr
 											key={table.id}
 											className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-transparent transition-all"

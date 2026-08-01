@@ -2,9 +2,9 @@
 import { adminApi, publicApi } from "../config/api";
 
 const tableService = {
-  // Get all tables
-  getAllTables: async () => {
-    const response = await adminApi.get("/tables");
+  // Get tables with optional server-side filtering and sorting
+  getAllTables: async (params = {}) => {
+    const response = await adminApi.get("/tables", { params });
     return response.data;
   },
 
@@ -85,63 +85,6 @@ const tableService = {
     return response.data;
   },
 
-  // Filter tables by status, location, and search (client-side)
-  filterTables: (tables, filters) => {
-    let filtered = [...tables];
-
-    if (filters.status && filters.status !== "all") {
-      filtered = filtered.filter(
-        (table) => table.status === filters.status
-      );
-    }
-
-    if (filters.location && filters.location !== "all") {
-      filtered = filtered.filter(
-        (table) => table.location === filters.location
-      );
-    }
-
-    if (filters.search) {
-      const searchLower = filters.search.toLowerCase();
-      filtered = filtered.filter(
-        (table) =>
-          table.table_number.toLowerCase().includes(searchLower) ||
-          (table.location &&
-            table.location.toLowerCase().includes(searchLower)) ||
-          (table.description &&
-            table.description.toLowerCase().includes(searchLower))
-      );
-    }
-
-    return filtered;
-  },
-
-  sortTables: (tables, sortBy, sortOrder = "asc") => {
-    return [...tables].sort((a, b) => {
-      let aVal, bVal;
-
-      switch (sortBy) {
-        case "table_number":
-          aVal = a.table_number;
-          bVal = b.table_number;
-          break;
-        case "capacity":
-          aVal = a.capacity;
-          bVal = b.capacity;
-          break;
-        case "created_at":
-          aVal = new Date(a.created_at);
-          bVal = new Date(b.created_at);
-          break;
-        default:
-          return 0;
-      }
-
-      if (aVal < bVal) return sortOrder === "asc" ? -1 : 1;
-      if (aVal > bVal) return sortOrder === "asc" ? 1 : -1;
-      return 0;
-    });
-  },
 };
 
 export default tableService;

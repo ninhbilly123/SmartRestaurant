@@ -1,6 +1,4 @@
 import Table from '../../models/table.js';
-
-
 import { TableService } from '../../services/table.service.js';
 import { createTableSchema, updateTableSchema, updateTableStatusSchema } from '../../validators/table.validator.js';
 import { validate } from '../../middlewares/validator.js';
@@ -8,11 +6,7 @@ import { validate } from '../../middlewares/validator.js';
 // Lấy tất cả bàn
 export const getAllTable = async (req, res) => {
   try {
-
-    //Lấy tất cả bàn từ database
-    const tables = await Table.findAll({
-      order: [['created_at', 'DESC']]
-    });
+    const tables = await TableService.getAll(req.query);
     
     res.json({ 
       success: true, 
@@ -24,6 +18,31 @@ export const getAllTable = async (req, res) => {
     res.status(500).json({ 
       success: false, 
       error: error.message 
+    });
+  }
+};
+
+export const deleteTable = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await TableService.delete(id);
+
+    res.json({
+      success: true,
+      message: result.message,
+    });
+  } catch (error) {
+    if (error.message === 'Table not found') {
+      return res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    console.error('Error deleting table:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
     });
   }
 };

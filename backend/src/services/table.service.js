@@ -164,25 +164,37 @@ export class TableService {
    */
   static async getAll(filters = {}) {
     const where = {};
+    const sortMap = {
+      table_number: 'table_number',
+      capacity: 'capacity',
+      location: 'location',
+      status: 'status',
+      created_at: 'created_at'
+    };
+
+    const sortBy = sortMap[filters.sortBy] || 'created_at';
+    const sortOrder = String(filters.sortOrder).toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
     
-    if (filters.status) {
+    if (filters.status && filters.status !== 'all') {
       where.status = filters.status;
     }
     
-    if (filters.location) {
+    if (filters.location && filters.location !== 'all') {
       where.location = filters.location;
     }
     
-    if (filters.search) {
+    if (filters.search && filters.search.trim()) {
+      const keyword = filters.search.trim();
       where[Op.or] = [
-        { table_number: { [Op.like]: `%${filters.search}%` } },
-        { description: { [Op.like]: `%${filters.search}%` } }
+        { table_number: { [Op.iLike]: `%${keyword}%` } },
+        { location: { [Op.iLike]: `%${keyword}%` } },
+        { description: { [Op.iLike]: `%${keyword}%` } }
       ];
     }
     
     return await Table.findAll({
       where,
-      order: [['createdAt', 'DESC']]
+      order: [[sortBy, sortOrder]]
     });
   }
 
