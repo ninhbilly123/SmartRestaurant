@@ -211,7 +211,7 @@ const ReportPage = () => {
       {/* 3. HÀNG BIỂU ĐỒ DƯỚI (Peak Hours) - PHẦN MỚI THÊM */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
           <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
-            <Clock size={20} className="text-blue-500"/> Khung giờ cao điểm (Peak Hours)
+            <Clock size={20} className="text-blue-500"/> Khung giờ cao điểm
           </h3>
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">

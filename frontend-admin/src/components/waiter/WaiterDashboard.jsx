@@ -239,6 +239,20 @@ const WaiterDashboard = () => {
       currency: "VND",
     }).format(a);
   };
+  const getStatusLabel = (status) => {
+    const labels = {
+      pending: "Chờ duyệt",
+      confirmed: "Đã duyệt",
+      preparing: "Đang nấu",
+      ready: "Sẵn sàng",
+      served: "Đã phục vụ",
+      completed: "Hoàn tất",
+      cancelled: "Đã hủy",
+      payment_request: "Yêu cầu thanh toán",
+      payment_pending: "Chờ thanh toán",
+    };
+    return labels[status] || status;
+  };
 
   // Filter Logic Updated
   const filteredOrders = orders.filter((order) => {
@@ -268,7 +282,7 @@ const WaiterDashboard = () => {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-800">
-              Waiter Dashboard
+              Màn hình phục vụ
             </h1>
             <p className="text-gray-500 text-sm">
               {currentTime.toLocaleTimeString("vi-VN", {
@@ -359,7 +373,7 @@ const WaiterDashboard = () => {
               >
                 <div className="flex flex-col">
                   <h3 className="font-bold text-lg text-gray-800">
-                    Bàn {order.table?.table_number || "Unknown"}
+                    Bàn {order.table?.table_number || "Không rõ"}
                   </h3>
                   <span className="text-[10px] text-gray-500 flex items-center gap-1">
                     <Clock size={10} /> {getMinutesWaiting(order.created_at)}{" "}
@@ -468,7 +482,7 @@ const WaiterDashboard = () => {
                             )}
                             <div className="flex flex-wrap gap-1">
                               <span className="text-[9px] bg-gray-100 px-1 rounded text-gray-500">
-                                {item.status}
+                                {getStatusLabel(item.status)}
                               </span>
                               {item.status === "cancelled" && (
                                 <span className="text-[9px] text-red-500">

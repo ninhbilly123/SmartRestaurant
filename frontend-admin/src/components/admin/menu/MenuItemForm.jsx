@@ -86,7 +86,7 @@ const MenuItemForm = () => {
         setSelectedModifierGroups(item.modifierGroups?.map((g) => g.id) || []);
       }
     } catch (err) {
-      setError(err.message || "Failed to load data");
+      setError(err.message || "Không thể tải dữ liệu");
     } finally {
       setFetchLoading(false);
     }
@@ -423,7 +423,7 @@ const MenuItemForm = () => {
             </div>
 
             <Input
-              label="Price (VNĐ)"
+              label="Giá (VNĐ)"
               name="price"
               type="number"
               step="1"
@@ -535,7 +535,7 @@ const MenuItemForm = () => {
               >
                 <img
                   src={photo.url}
-                  alt="Menu item"
+                  alt="Ảnh món ăn"
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-50 transition-all flex items-center justify-center gap-2 opacity-0 hover:opacity-100">
@@ -544,7 +544,7 @@ const MenuItemForm = () => {
                       type="button"
                       onClick={() => handleSetPrimaryPhoto(photo.id)}
                       className="p-1 bg-blue-500 text-white rounded"
-                      title="Set as primary"
+                      title="Đặt làm ảnh chính"
                     >
                       <svg
                         className="w-4 h-4"
@@ -565,7 +565,7 @@ const MenuItemForm = () => {
                     type="button"
                     onClick={() => handleDeletePhoto(photo.id)}
                     className="p-1 bg-red-500 text-white rounded"
-                    title="Delete"
+                    title="Xóa"
                   >
                     <svg
                       className="w-4 h-4"
@@ -603,7 +603,7 @@ const MenuItemForm = () => {
                   >
                     <img
                       src={photo.preview}
-                      alt="Pending upload"
+                      alt="Ảnh chờ tải lên"
                       className="w-full h-full object-cover"
                     />
                     <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-50 transition-all flex items-center justify-center gap-2 opacity-0 hover:opacity-100">
@@ -612,7 +612,7 @@ const MenuItemForm = () => {
                           type="button"
                           onClick={() => handleSetPrimaryPendingPhoto(photo.id)}
                           className="p-1 bg-blue-500 text-white rounded"
-                          title="Set as primary"
+                          title="Đặt làm ảnh chính"
                         >
                           <svg
                             className="w-4 h-4"
@@ -633,7 +633,7 @@ const MenuItemForm = () => {
                         type="button"
                         onClick={() => handleRemovePendingPhoto(photo.id)}
                         className="p-1 bg-red-500 text-white rounded"
-                        title="Remove"
+                        title="Xóa"
                       >
                         <svg
                           className="w-4 h-4"
@@ -765,7 +765,10 @@ const MenuItemForm = () => {
                               (opt) =>
                                 `${opt.name}${
                                   opt.price_adjustment > 0
-                                    ? ` +$${opt.price_adjustment}`
+                                    ? ` +${new Intl.NumberFormat("vi-VN", {
+                                        style: "currency",
+                                        currency: "VND",
+                                      }).format(opt.price_adjustment)}`
                                     : ""
                                 }`,
                             )

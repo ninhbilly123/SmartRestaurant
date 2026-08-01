@@ -50,7 +50,7 @@ const TableList = () => {
 			const response = await tableService.getAllTables();
 			setTables(response.data || []);
 		} catch (err) {
-			setError(err.message || "Failed to load tables");
+			setError(err.message || "Không thể tải danh sách bàn");
 		} finally {
 			setLoading(false);
 		}
@@ -91,10 +91,10 @@ const TableList = () => {
 		try {
 			const { tableId, newStatus } = confirmDialog;
 			await tableService.updateTableStatus(tableId, newStatus);
-			setSuccess(`Table status updated to ${newStatus}`);
+			setSuccess(`Đã cập nhật trạng thái bàn thành ${newStatus === "active" ? "hoạt động" : "ngừng hoạt động"}`);
 			fetchTables();
 		} catch (err) {
-			setError(err.message || "Failed to update table status");
+			setError(err.message || "Không thể cập nhật trạng thái bàn");
 		}
 	};
 
@@ -113,9 +113,9 @@ const TableList = () => {
 			document.body.removeChild(link);
 			window.URL.revokeObjectURL(url);
 
-			setSuccess(`All QR codes downloaded as ${format.toUpperCase()}`);
+			setSuccess(`Đã tải tất cả mã QR dạng ${format.toUpperCase()}`);
 		} catch (err) {
-			setError(err.message || "Failed to download QR codes");
+			setError(err.message || "Không thể tải mã QR");
 		}
 	};
 
@@ -133,7 +133,7 @@ const TableList = () => {
 			<span className="ml-1 text-blue-600">↓</span>;
 	};
 
-	if (loading) return <Loading size="lg" text="Loading tables..." />;
+	if (loading) return <Loading size="lg" text="Đang tải danh sách bàn..." />;
 
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
@@ -149,11 +149,11 @@ const TableList = () => {
 									</svg>
 								</div>
 								<h1 className="text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
-									Table Management
+									Quản lý bàn
 								</h1>
 							</div>
 							<p className="text-gray-600 ml-14">
-								Manage restaurant tables and seating arrangements
+								Quản lý bàn và sơ đồ chỗ ngồi trong nhà hàng
 							</p>
 						</div>
 						<div className="flex gap-2">
@@ -167,7 +167,7 @@ const TableList = () => {
 									<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
 									</svg>
-									Download All QR
+									Tải tất cả QR
 								</span>
 							</Button>
 							<Button 
@@ -178,7 +178,7 @@ const TableList = () => {
 									<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
 									</svg>
-									Add New Table
+									Thêm bàn mới
 								</span>
 							</Button>
 						</div>
@@ -199,13 +199,13 @@ const TableList = () => {
 						<svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 							<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
 						</svg>
-						<h2 className="text-lg font-semibold text-gray-800">Filters</h2>
+						<h2 className="text-lg font-semibold text-gray-800">Bộ lọc</h2>
 					</div>
 					<div className="grid grid-cols-1 md:grid-cols-4 gap-4">
 						{/* Search */}
 						<div>
 							<label className="block text-sm font-medium text-gray-700 mb-2">
-								Search
+								Tìm kiếm
 							</label>
 							<div className="relative">
 								<div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -218,7 +218,7 @@ const TableList = () => {
 									name="search"
 									value={filters.search}
 									onChange={handleFilterChange}
-									placeholder="Search tables..."
+									placeholder="Tìm bàn..."
 									className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-gray-50 hover:bg-white"
 								/>
 							</div>
@@ -227,7 +227,7 @@ const TableList = () => {
 						{/* Status Filter */}
 						<div>
 							<label className="block text-sm font-medium text-gray-700 mb-2">
-								Status
+								Trạng thái
 							</label>
 							<select
 								name="status"
@@ -235,16 +235,16 @@ const TableList = () => {
 								onChange={handleFilterChange}
 								className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-gray-50 hover:bg-white"
 							>
-								<option value="all">All Status</option>
-								<option value="active">Active</option>
-								<option value="inactive">Inactive</option>
+								<option value="all">Tất cả trạng thái</option>
+								<option value="active">Hoạt động</option>
+								<option value="inactive">Ngừng hoạt động</option>
 							</select>
 						</div>
 
 						{/* Location Filter */}
 						<div>
 							<label className="block text-sm font-medium text-gray-700 mb-2">
-								Location
+								Vị trí
 							</label>
 							<select
 								name="location"
@@ -252,7 +252,7 @@ const TableList = () => {
 								onChange={handleFilterChange}
 								className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-gray-50 hover:bg-white"
 							>
-								<option value="all">All Locations</option>
+								<option value="all">Tất cả vị trí</option>
 								{getLocationOptions().map((opt) => (
 									<option key={opt.value} value={opt.value}>
 										{opt.label}
@@ -278,7 +278,7 @@ const TableList = () => {
 									<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
 									</svg>
-									Clear Filters
+									Xóa bộ lọc
 								</span>
 							</Button>
 						</div>
@@ -289,7 +289,7 @@ const TableList = () => {
 				<div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
 					<div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg p-6 text-white transform hover:scale-105 transition-transform">
 						<div className="flex items-center justify-between mb-2">
-							<p className="text-blue-100 text-sm font-medium">Total Tables</p>
+							<p className="text-blue-100 text-sm font-medium">Tổng số bàn</p>
 							<svg className="w-8 h-8 text-blue-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
 							</svg>
@@ -299,7 +299,7 @@ const TableList = () => {
 
 					<div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl shadow-lg p-6 text-white transform hover:scale-105 transition-transform">
 						<div className="flex items-center justify-between mb-2">
-							<p className="text-green-100 text-sm font-medium">Active</p>
+							<p className="text-green-100 text-sm font-medium">Đang hoạt động</p>
 							<svg className="w-8 h-8 text-green-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
 							</svg>
@@ -311,7 +311,7 @@ const TableList = () => {
 
 					<div className="bg-gradient-to-br from-red-500 to-red-600 rounded-2xl shadow-lg p-6 text-white transform hover:scale-105 transition-transform">
 						<div className="flex items-center justify-between mb-2">
-							<p className="text-red-100 text-sm font-medium">Inactive</p>
+							<p className="text-red-100 text-sm font-medium">Ngừng hoạt động</p>
 							<svg className="w-8 h-8 text-red-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
 							</svg>
@@ -323,7 +323,7 @@ const TableList = () => {
 
 					<div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl shadow-lg p-6 text-white transform hover:scale-105 transition-transform">
 						<div className="flex items-center justify-between mb-2">
-							<p className="text-purple-100 text-sm font-medium">Total Capacity</p>
+							<p className="text-purple-100 text-sm font-medium">Tổng sức chứa</p>
 							<svg className="w-8 h-8 text-purple-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
 							</svg>
@@ -344,17 +344,17 @@ const TableList = () => {
 								</svg>
 							</div>
 							<h3 className="text-xl font-semibold text-gray-900 mb-2">
-								No tables found
+								Không tìm thấy bàn
 							</h3>
 							<p className="text-gray-600 mb-6">
-								Get started by creating your first table
+								Hãy tạo bàn đầu tiên để bắt đầu
 							</p>
 							<Button onClick={() => navigate("/tables/new")}>
 								<span className="flex items-center gap-2">
 									<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
 									</svg>
-									Create First Table
+									Tạo bàn đầu tiên
 								</span>
 							</Button>
 						</div>
@@ -368,7 +368,7 @@ const TableList = () => {
 											onClick={() => handleSort("table_number")}
 										>
 											<div className="flex items-center">
-												Table Number
+												Số bàn
 												<SortIcon field="table_number" />
 											</div>
 										</th>
@@ -377,30 +377,30 @@ const TableList = () => {
 											onClick={() => handleSort("capacity")}
 										>
 											<div className="flex items-center">
-												Capacity
+												Sức chứa
 												<SortIcon field="capacity" />
 											</div>
 										</th>
 										<th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-											Location
+											Vị trí
 										</th>
 										<th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-											Status
+											Trạng thái
 										</th>
 										<th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-											QR Code
+											Mã QR
 										</th>
 										<th
 											className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-blue-100 transition-colors"
 											onClick={() => handleSort("created_at")}
 										>
 											<div className="flex items-center">
-												Created At
+												Ngày tạo
 												<SortIcon field="created_at" />
 											</div>
 										</th>
 										<th className="px-6 py-4 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">
-											Actions
+											Thao tác
 										</th>
 									</tr>
 								</thead>
@@ -446,14 +446,14 @@ const TableList = () => {
 												<Badge
 													variant={table.status === "active" ? "success" : "danger"}
 												>
-													{table.status}
+													{table.status === "active" ? "Hoạt động" : "Ngừng hoạt động"}
 												</Badge>
 											</td>
 											<td className="px-6 py-4 whitespace-nowrap">
 												<Badge
 													variant={table.qr_token ? "info" : "default"}
 												>
-													{table.qr_token ? "Generated" : "Not Generated"}
+													{table.qr_token ? "Đã tạo" : "Chưa tạo"}
 												</Badge>
 											</td>
 											<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
@@ -466,7 +466,7 @@ const TableList = () => {
 														variant="outline"
 														onClick={() => navigate(`/tables/${table.id}`)}
 													>
-														Edit
+														Sửa
 													</Button>
 													<Button
 														size="sm"
@@ -479,14 +479,14 @@ const TableList = () => {
 															)
 														}
 													>
-														{table.status === "active" ? "Deactivate" : "Activate"}
+														{table.status === "active" ? "Ngừng" : "Kích hoạt"}
 													</Button>
 													<Button
 														size="sm"
 														variant="secondary"
 														onClick={() => navigate(`/tables/${table.id}/qr`)}
 													>
-														QR Code
+														Mã QR
 													</Button>
 												</div>
 											</td>
@@ -508,18 +508,18 @@ const TableList = () => {
 				onConfirm={confirmStatusChange}
 				title={`${
 					confirmDialog.newStatus === "active"
-						? "Activate"
-						: "Deactivate"
-				} Table`}
-				message={`Are you sure you want to ${
+						? "Kích hoạt"
+						: "Ngừng hoạt động"
+				} bàn`}
+				message={`Bạn có chắc muốn ${
 					confirmDialog.newStatus === "active"
-						? "activate"
-						: "deactivate"
-				} table "${confirmDialog.tableName}"?`}
+						? "kích hoạt"
+						: "ngừng hoạt động"
+				} bàn "${confirmDialog.tableName}" không?`}
 				confirmText={
 					confirmDialog.newStatus === "active"
-						? "Activate"
-						: "Deactivate"
+						? "Kích hoạt"
+						: "Ngừng hoạt động"
 				}
 				variant={
 					confirmDialog.newStatus === "active" ? "info" : "warning"

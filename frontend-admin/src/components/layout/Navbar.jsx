@@ -11,7 +11,16 @@ const Navbar = () => {
   const authPayload = getAuthPayload();
   const role = authPayload?.role;
   const displayName =
-    authPayload?.fullName || authPayload?.username || role || "User";
+    authPayload?.fullName || authPayload?.username || role || "Người dùng";
+  const getRoleLabel = (roleName) => {
+    const labels = {
+      super_admin: "Siêu quản trị",
+      admin: "Quản trị viên",
+      waiter: "Phục vụ",
+      kitchen: "Bếp",
+    };
+    return labels[roleName] || roleName;
+  };
 
   // --- 2. HÀM ĐĂNG XUẤT ---
   const handleLogout = () => {
@@ -60,7 +69,7 @@ const Navbar = () => {
                 <h1 className="text-xl font-bold text-gray-900">
                   Smart Restaurant
                 </h1>
-                <p className="text-xs text-gray-600">Admin Management System</p>
+                <p className="text-xs text-gray-600">Hệ thống quản lý</p>
               </div>
             </Link>
 
@@ -91,7 +100,7 @@ const Navbar = () => {
                         d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
                       />
                     </svg>
-                    Tables
+                    Bàn
                   </span>
                 </Link>
               )}
@@ -120,7 +129,7 @@ const Navbar = () => {
                         d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
                       />
                     </svg>
-                    Menu
+                    Thực đơn
                     <svg
                       className={`w-4 h-4 transition-transform ${
                         menuOpen ? "rotate-180" : ""
@@ -145,21 +154,21 @@ const Navbar = () => {
                         onClick={() => setMenuOpen(false)}
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-t-lg"
                       >
-                        Categories
+                        Danh mục
                       </Link>
                       <Link
                         to="/admin/menu/items"
                         onClick={() => setMenuOpen(false)}
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                       >
-                        Menu Items
+                        Món ăn
                       </Link>
                       <Link
                         to="/admin/menu/modifiers"
                         onClick={() => setMenuOpen(false)}
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-b-lg"
                       >
-                        Modifiers
+                        Tùy chọn
                       </Link>
                     </div>
                   )}
@@ -255,7 +264,7 @@ const Navbar = () => {
                 >
                   <span className="flex items-center gap-2">
                     <span className="text-lg">🍳</span>
-                    Kitchen
+                    Bếp
                   </span>
                 </Link>
               )}
@@ -283,7 +292,9 @@ const Navbar = () => {
                   <div className="text-sm font-bold text-gray-800">
                     {displayName}
                   </div>
-                  <div className="text-xs text-gray-500 uppercase">{role}</div>
+                  <div className="text-xs text-gray-500 uppercase">
+                    {getRoleLabel(role)}
+                  </div>
                 </div>
                 <button
                   onClick={handleLogout}

@@ -30,7 +30,7 @@ const QRCodeManagement = ({ table, onUpdate }) => {
 			setQrPreview(response.data);
 			setError("");
 		} catch (err) {
-			setError(err.message || "Failed to load QR preview");
+			setError(err.message || "Không thể tải bản xem trước mã QR");
 		} finally {
 			setLoading(false);
 		}
@@ -42,11 +42,11 @@ const QRCodeManagement = ({ table, onUpdate }) => {
 			setError("");
 			const response = await tableService.generateQRCode(table.id);
 			setQrPreview(response.data);
-			setSuccess("QR code generated successfully!");
+			setSuccess("Đã tạo mã QR thành công!");
 			if (onUpdate) onUpdate();
 			setTimeout(() => setSuccess(""), 3000);
 		} catch (err) {
-			setError(err.message || "Failed to generate QR code");
+			setError(err.message || "Không thể tạo mã QR");
 		} finally {
 			setLoading(false);
 		}
@@ -60,12 +60,12 @@ const QRCodeManagement = ({ table, onUpdate }) => {
 			const response = await tableService.regenerateQRCode(table.id);
 			setQrPreview(response.data);
 			setSuccess(
-				"QR code regenerated successfully! Previous QR codes are now invalid."
+				"Đã tạo lại mã QR thành công! Các mã QR cũ không còn hiệu lực."
 			);
 			if (onUpdate) onUpdate();
 			setTimeout(() => setSuccess(""), 3000);
 		} catch (err) {
-			setError(err.message || "Failed to regenerate QR code");
+			setError(err.message || "Không thể tạo lại mã QR");
 		} finally {
 			setLoading(false);
 		}
@@ -87,11 +87,11 @@ const QRCodeManagement = ({ table, onUpdate }) => {
 			document.body.removeChild(link);
 			window.URL.revokeObjectURL(url);
 
-			setSuccess(`QR code downloaded as ${format.toUpperCase()}`);
+			setSuccess(`Đã tải mã QR dạng ${format.toUpperCase()}`);
 			setTimeout(() => setSuccess(""), 3000);
 		} catch (err) {
 			setError(
-				err.response?.data?.message || "Failed to download QR code"
+				err.response?.data?.message || "Không thể tải mã QR"
 			);
 		} finally {
 			setDownloading(false);
@@ -120,20 +120,20 @@ const QRCodeManagement = ({ table, onUpdate }) => {
 			<Card>
 				<div className="p-6">
 					<h3 className="text-lg font-semibold mb-4">
-						QR Code Status
+						Trạng thái mã QR
 					</h3>
 
 					{!hasQRCode ? (
 						<div className="text-center py-8">
 							<div className="mb-4 text-gray-500">
-								No QR code generated for this table yet.
+								Bàn này chưa có mã QR.
 							</div>
 							<Button
 								variant="primary"
 								onClick={handleGenerateQR}
 								disabled={loading}
 							>
-								{loading ? "Generating..." : "Generate QR Code"}
+								{loading ? "Đang tạo..." : "Tạo mã QR"}
 							</Button>
 						</div>
 					) : (
@@ -141,15 +141,15 @@ const QRCodeManagement = ({ table, onUpdate }) => {
 							<div className="flex items-center justify-between">
 								<div>
 									<div className="text-sm text-gray-600">
-										QR Code Status
+										Trạng thái mã QR
 									</div>
 									<div className="text-sm font-medium text-green-600">
-										Active (Created:{" "}
+										Đang hoạt động (Tạo lúc:{" "}
 										{table.qr_token_created_at
 											? new Date(
 													table.qr_token_created_at
 											  ).toLocaleDateString()
-											: "N/A"}
+											: "Chưa có"}
 										)
 									</div>
 								</div>
@@ -161,7 +161,7 @@ const QRCodeManagement = ({ table, onUpdate }) => {
 										loadQRPreview();
 									}}
 								>
-									Preview
+									Xem trước
 								</Button>
 							</div>
 
@@ -172,8 +172,8 @@ const QRCodeManagement = ({ table, onUpdate }) => {
 									disabled={downloading}
 								>
 									{downloading
-										? "Downloading..."
-										: "Download PNG"}
+										? "Đang tải..."
+										: "Tải PNG"}
 								</Button>
 								<Button
 									variant="secondary"
@@ -181,8 +181,8 @@ const QRCodeManagement = ({ table, onUpdate }) => {
 									disabled={downloading}
 								>
 									{downloading
-										? "Downloading..."
-										: "Download PDF"}
+										? "Đang tải..."
+										: "Tải PDF"}
 								</Button>
 								<Button
 									variant="danger"
@@ -191,13 +191,12 @@ const QRCodeManagement = ({ table, onUpdate }) => {
 									}
 									disabled={loading}
 								>
-									Regenerate QR Code
+									Tạo lại mã QR
 								</Button>
 							</div>
 
 							<div className="text-xs text-gray-500 mt-2">
-								⚠️ Regenerating will invalidate the current QR
-								code
+								⚠️ Tạo lại sẽ làm mã QR hiện tại không còn hiệu lực
 							</div>
 						</div>
 					)}
@@ -208,7 +207,7 @@ const QRCodeManagement = ({ table, onUpdate }) => {
 			<Modal
 				isOpen={showPreview}
 				onClose={() => setShowPreview(false)}
-				title={`QR Code - Table ${table.table_number}`}
+				title={`Mã QR - Bàn ${table.table_number}`}
 			>
 				<div className="p-4">
 					{loading ? (
@@ -218,16 +217,16 @@ const QRCodeManagement = ({ table, onUpdate }) => {
 							<div className="flex justify-center">
 								<img
 									src={qrPreview.qr_data_url}
-									alt={`QR Code for Table ${table.table_number}`}
+									alt={`Mã QR cho bàn ${table.table_number}`}
 									className="w-64 h-64 border-2 border-gray-200 rounded-lg"
 								/>
 							</div>
 							<div className="text-center">
 								<div className="text-sm font-semibold">
-									Table {table.table_number}
+									Bàn {table.table_number}
 								</div>
 								<div className="text-xs text-gray-500">
-									Location: {table.location || "N/A"}
+									Vị trí: {table.location || "Chưa có"}
 								</div>
 								<div className="text-xs text-gray-500 mt-2 break-all">
 									URL: {qrPreview.qr_url}
@@ -239,20 +238,20 @@ const QRCodeManagement = ({ table, onUpdate }) => {
 									size="sm"
 									onClick={() => handleDownload("png")}
 								>
-									Download PNG
+									Tải PNG
 								</Button>
 								<Button
 									variant="secondary"
 									size="sm"
 									onClick={() => handleDownload("pdf")}
 								>
-									Download PDF
+									Tải PDF
 								</Button>
 							</div>
 						</div>
 					) : (
 						<div className="text-center text-gray-500">
-							Failed to load QR preview
+							Không thể tải bản xem trước mã QR
 						</div>
 					)}
 				</div>
@@ -263,9 +262,9 @@ const QRCodeManagement = ({ table, onUpdate }) => {
 				isOpen={showConfirmRegenerate}
 				onClose={() => setShowConfirmRegenerate(false)}
 				onConfirm={handleRegenerateQR}
-				title="Regenerate QR Code"
-				message="Are you sure you want to regenerate the QR code? This will invalidate the current QR code and any printed materials will no longer work."
-				confirmText="Regenerate"
+				title="Tạo lại mã QR"
+				message="Bạn có chắc muốn tạo lại mã QR không? Mã QR hiện tại và các bản đã in sẽ không còn hoạt động."
+				confirmText="Tạo lại"
 				variant="danger"
 			/>
 		</div>

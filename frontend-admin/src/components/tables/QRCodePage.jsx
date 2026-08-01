@@ -24,7 +24,7 @@ const QRCodePage = () => {
 			const response = await tableService.getTableById(id);
 			setTable(response.data);
 		} catch (err) {
-			setError(err.message || "Failed to load table");
+			setError(err.message || "Không thể tải thông tin bàn");
 		} finally {
 			setLoading(false);
 		}
@@ -33,7 +33,7 @@ const QRCodePage = () => {
 	if (loading) {
 		return (
 			<div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 flex items-center justify-center">
-				<Loading size="lg" text="Loading table information..." />
+				<Loading size="lg" text="Đang tải thông tin bàn..." />
 			</div>
 		);
 	}
@@ -50,8 +50,8 @@ const QRCodePage = () => {
 										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
 									</svg>
 								</div>
-								<h2 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Table</h2>
-								<p className="text-gray-600">{error || "Table not found"}</p>
+								<h2 className="text-2xl font-bold text-gray-900 mb-2">Không thể tải thông tin bàn</h2>
+								<p className="text-gray-600">{error || "Không tìm thấy bàn"}</p>
 							</div>
 							<div className="flex justify-center">
 								<Button onClick={() => navigate("/tables")}>
@@ -59,7 +59,7 @@ const QRCodePage = () => {
 										<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 											<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
 										</svg>
-										Back to Tables
+										Quay lại danh sách bàn
 									</span>
 								</Button>
 							</div>
@@ -97,12 +97,12 @@ const QRCodePage = () => {
 									</div>
 									<div>
 										<h1 className="text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
-											QR Code Management
+											Quản lý mã QR
 										</h1>
 									</div>
 								</div>
 								<p className="text-gray-600 ml-14">
-									Generate and manage QR code for customer orders
+									Tạo và quản lý mã QR để khách gọi món
 								</p>
 							</div>
 						</div>
@@ -118,7 +118,7 @@ const QRCodePage = () => {
 									</span>
 								</div>
 								<div>
-									<p className="text-sm text-gray-600 font-medium">Table Number</p>
+									<p className="text-sm text-gray-600 font-medium">Số bàn</p>
 									<p className="text-xl font-bold text-gray-900">{table.table_number}</p>
 								</div>
 							</div>
@@ -130,8 +130,8 @@ const QRCodePage = () => {
 											<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
 										</svg>
 										<div>
-											<p className="text-xs text-gray-600">Capacity</p>
-											<p className="font-bold text-gray-900">{table.capacity} people</p>
+											<p className="text-xs text-gray-600">Sức chứa</p>
+											<p className="font-bold text-gray-900">{table.capacity} người</p>
 										</div>
 									</div>
 								)}
@@ -143,7 +143,7 @@ const QRCodePage = () => {
 											<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
 										</svg>
 										<div>
-											<p className="text-xs text-gray-600">Location</p>
+											<p className="text-xs text-gray-600">Vị trí</p>
 											<p className="font-bold text-gray-900">{table.location}</p>
 										</div>
 									</div>
@@ -152,9 +152,9 @@ const QRCodePage = () => {
 								<div className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg shadow-sm">
 									<div className={`w-3 h-3 rounded-full ${table.status === 'active' ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
 									<div>
-										<p className="text-xs text-gray-600">Status</p>
+										<p className="text-xs text-gray-600">Trạng thái</p>
 										<p className={`font-bold ${table.status === 'active' ? 'text-green-600' : 'text-red-600'}`}>
-											{table.status === 'active' ? 'Active' : 'Inactive'}
+											{table.status === 'active' ? 'Hoạt động' : 'Ngừng hoạt động'}
 										</p>
 									</div>
 								</div>

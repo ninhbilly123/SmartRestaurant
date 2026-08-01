@@ -9,18 +9,18 @@ import Loading from "../common/Loading";
 import Alert from "../common/Alert";
 
 const LOCATION_OPTIONS = [
-	{ value: "", label: "Select location" },
-	{ value: "Indoor", label: "Indoor" },
-	{ value: "Outdoor", label: "Outdoor" },
-	{ value: "Patio", label: "Patio" },
-	{ value: "VIP Room", label: "VIP Room" },
-	{ value: "Bar Area", label: "Bar Area" },
-	{ value: "Garden", label: "Garden" },
+	{ value: "", label: "Chọn khu vực" },
+	{ value: "Indoor", label: "Trong nhà" },
+	{ value: "Outdoor", label: "Ngoài trời" },
+	{ value: "Patio", label: "Sân hiên" },
+	{ value: "VIP Room", label: "Phòng VIP" },
+	{ value: "Bar Area", label: "Khu vực bar" },
+	{ value: "Garden", label: "Sân vườn" },
 ];
 
 const STATUS_OPTIONS = [
-	{ value: "active", label: "Active" },
-	{ value: "inactive", label: "Inactive" },
+	{ value: "active", label: "Hoạt động" },
+	{ value: "inactive", label: "Ngừng hoạt động" },
 ];
 
 const TableForm = () => {
@@ -63,7 +63,7 @@ const TableForm = () => {
 				status: table.status || "active",
 			});
 		} catch (err) {
-			setError(err.message || "Failed to load table");
+			setError(err.message || "Không thể tải thông tin bàn");
 		} finally {
 			setFetchLoading(false);
 		}
@@ -89,30 +89,30 @@ const TableForm = () => {
 
 		// Table number validation
 		if (!formData.table_number.trim()) {
-			newErrors.table_number = "Table number is required";
+			newErrors.table_number = "Số bàn là bắt buộc";
 		} else if (!/^[A-Za-z0-9-_]+$/.test(formData.table_number)) {
 			newErrors.table_number =
-				"Table number can only contain letters, numbers, hyphens and underscores";
+				"Số bàn chỉ được chứa chữ, số, dấu gạch ngang và gạch dưới";
 		} else if (formData.table_number.length > 50) {
 			newErrors.table_number =
-				"Table number must not exceed 50 characters";
+				"Số bàn không được vượt quá 50 ký tự";
 		}
 
 		// Capacity validation
 		if (!formData.capacity) {
-			newErrors.capacity = "Capacity is required";
+			newErrors.capacity = "Sức chứa là bắt buộc";
 		} else {
 			const capacityNum = parseInt(formData.capacity);
 			if (isNaN(capacityNum) || capacityNum < 1) {
-				newErrors.capacity = "Capacity must be at least 1";
+				newErrors.capacity = "Sức chứa phải ít nhất là 1";
 			} else if (capacityNum > 20) {
-				newErrors.capacity = "Capacity cannot exceed 20";
+				newErrors.capacity = "Sức chứa không được vượt quá 20";
 			}
 		}
 
 		// Location validation (optional but if provided, check length)
 		if (formData.location && formData.location.length > 100) {
-			newErrors.location = "Location must not exceed 100 characters";
+			newErrors.location = "Khu vực không được vượt quá 100 ký tự";
 		}
 
 		setErrors(newErrors);
@@ -138,17 +138,17 @@ const TableForm = () => {
 
 			if (isEditMode) {
 				await tableService.updateTable(id, submitData);
-				setSuccess("Table updated successfully");
+				setSuccess("Đã cập nhật bàn thành công");
 				setTimeout(() => navigate("/tables"), 1500);
 			} else {
 				await tableService.createTable(submitData);
-				setSuccess("Table created successfully");
+				setSuccess("Đã tạo bàn thành công");
 				setTimeout(() => navigate("/tables"), 1500);
 			}
 		} catch (err) {
 			setError(
 				err.message ||
-					`Failed to ${isEditMode ? "update" : "create"} table`
+					`Không thể ${isEditMode ? "cập nhật" : "tạo"} bàn`
 			);
 		} finally {
 			setLoading(false);
@@ -156,7 +156,7 @@ const TableForm = () => {
 	};
 
 	if (fetchLoading) {
-		return <Loading size="lg" text="Loading table details..." />;
+		return <Loading size="lg" text="Đang tải thông tin bàn..." />;
 	}
 
 	return (
@@ -184,13 +184,13 @@ const TableForm = () => {
 						</svg>
 					</Button>
 					<h1 className="text-3xl font-bold text-gray-900">
-						{isEditMode ? "Edit Table" : "Create New Table"}
+						{isEditMode ? "Chỉnh sửa bàn" : "Tạo bàn mới"}
 					</h1>
 				</div>
 				<p className="text-gray-600">
 					{isEditMode
-						? "Update table information and settings"
-						: "Add a new table to your restaurant"}
+						? "Cập nhật thông tin và thiết lập của bàn"
+						: "Thêm bàn mới vào nhà hàng"}
 				</p>
 			</div>
 
@@ -210,11 +210,11 @@ const TableForm = () => {
 					<div className="space-y-6">
 						{/* Table Number */}
 						<Input
-							label="Table Number"
+							label="Số bàn"
 							name="table_number"
 							value={formData.table_number}
 							onChange={handleChange}
-							placeholder="e.g., T1, A-01, Table-001"
+							placeholder="VD: T1, A-01, Ban-001"
 							error={errors.table_number}
 							required
 							disabled={loading}
@@ -222,12 +222,12 @@ const TableForm = () => {
 
 						{/* Capacity */}
 						<Input
-							label="Capacity"
+							label="Sức chứa"
 							name="capacity"
 							type="number"
 							value={formData.capacity}
 							onChange={handleChange}
-							placeholder="Number of seats (1-20)"
+							placeholder="Số chỗ ngồi (1-20)"
 							error={errors.capacity}
 							required
 							min="1"
@@ -237,7 +237,7 @@ const TableForm = () => {
 
 						{/* Location */}
 						<Select
-							label="Location"
+							label="Khu vực"
 							name="location"
 							value={formData.location}
 							onChange={handleChange}
@@ -249,13 +249,13 @@ const TableForm = () => {
 						{/* Description */}
 						<div className="mb-4">
 							<label className="block text-sm font-medium text-gray-700 mb-1">
-								Description
+								Mô tả
 							</label>
 							<textarea
 								name="description"
 								value={formData.description}
 								onChange={handleChange}
-								placeholder="Optional notes about this table..."
+								placeholder="Ghi chú tùy chọn về bàn này..."
 								rows="3"
 								disabled={loading}
 								className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
@@ -264,7 +264,7 @@ const TableForm = () => {
 
 						{/* Status */}
 						<Select
-							label="Status"
+							label="Trạng thái"
 							name="status"
 							value={formData.status}
 							onChange={handleChange}
@@ -290,25 +290,22 @@ const TableForm = () => {
 								</svg>
 								<div className="text-sm text-blue-800">
 									<p className="font-medium mb-1">
-										Table Guidelines:
+										Hướng dẫn tạo bàn:
 									</p>
 									<ul className="list-disc list-inside space-y-1">
 										<li>
-											Table number must be unique and can
-											only contain letters, numbers,
-											hyphens, and underscores
+											Số bàn phải là duy nhất và chỉ được
+											chứa chữ, số, dấu gạch ngang, gạch dưới
 										</li>
 										<li>
-											Capacity must be between 1 and 20
-											seats
+											Sức chứa phải nằm trong khoảng 1 đến 20
+											chỗ ngồi
 										</li>
 										<li>
-											Inactive tables will not accept new
-											orders
+											Bàn ngừng hoạt động sẽ không nhận đơn mới
 										</li>
 										<li>
-											QR codes can be generated after
-											table creation
+											Mã QR có thể được tạo sau khi tạo bàn
 										</li>
 									</ul>
 								</div>
@@ -323,20 +320,20 @@ const TableForm = () => {
 								onClick={() => navigate("/tables")}
 								disabled={loading}
 							>
-								Cancel
+								Hủy
 							</Button>
 							<Button type="submit" disabled={loading}>
 								{loading ? (
 									<span className="flex items-center gap-2">
 										<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
 										{isEditMode
-											? "Updating..."
-											: "Creating..."}
+											? "Đang cập nhật..."
+											: "Đang tạo..."}
 									</span>
 								) : isEditMode ? (
-									"Update Table"
+									"Cập nhật bàn"
 								) : (
-									"Create Table"
+									"Tạo bàn"
 								)}
 							</Button>
 						</div>
@@ -362,13 +359,13 @@ const TableForm = () => {
 							/>
 						</svg>
 						<h3 className="text-lg font-semibold text-gray-900 mb-2">
-							QR Code Management
+							Quản lý mã QR
 						</h3>
 						<p className="text-gray-600 mb-4">
-							QR code feature is under development
+							Tính năng mã QR đang được phát triển
 						</p>
 						<Button variant="secondary" disabled>
-							Generate QR Code (Coming Soon)
+							Tạo mã QR (sắp có)
 						</Button>
 					</div>
 				</Card>

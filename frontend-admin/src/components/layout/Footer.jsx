@@ -6,12 +6,12 @@ const Footer = () => {
       <div className="container mx-auto px-4 py-6">
         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-gray-600">
-            © 2025 Smart Restaurant. Table Management System.
+            © 2025 Smart Restaurant. Hệ thống quản lý bàn.
           </p>
           <div className="flex items-center gap-4 text-sm text-gray-600">
-            <span>Version 1.0.0</span>
+            <span>Phiên bản 1.0.0</span>
             <span>•</span>
-            <span>Assignment: Table Management Module</span>
+            <span>Đồ án: Mô-đun quản lý bàn</span>
           </div>
         </div>
       </div>

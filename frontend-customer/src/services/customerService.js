@@ -456,7 +456,7 @@ class CustomerService {
     } catch (error) {
       return {
         success: false,
-        message: error.message || "Unable to fetch order information",
+        message: error.message || "Không thể lấy thông tin đơn hàng",
         data: [],
       };
     }

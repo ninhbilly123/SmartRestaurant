@@ -48,7 +48,7 @@ const OrderCard = ({ order, onStartOrder, onReadyOrder, isUpdating }) => {
       {/* HEADER */}
       <div className="bg-gray-800 text-white px-4 py-3 flex-shrink-0 flex justify-between items-center">
         <div>
-          <h3 className="font-bold text-lg">Order #{shortOrderId}</h3>
+          <h3 className="font-bold text-lg">Đơn #{shortOrderId}</h3>
           <p className="text-gray-300 text-sm">
             Bàn {order.table?.table_number}
           </p>
@@ -62,7 +62,13 @@ const OrderCard = ({ order, onStartOrder, onReadyOrder, isUpdating }) => {
                 : "bg-gray-600"
           }`}
         >
-          {order.status === "confirmed" ? "WAITING" : order.status}
+          {order.status === "confirmed"
+            ? "CHỜ NẤU"
+            : order.status === "preparing"
+              ? "ĐANG NẤU"
+              : order.status === "ready"
+                ? "SẴN SÀNG"
+                : order.status}
         </span>
       </div>
 
@@ -122,7 +128,7 @@ const OrderCard = ({ order, onStartOrder, onReadyOrder, isUpdating }) => {
                   <div className="text-sm text-gray-500 ml-8 mt-1 space-y-0.5">
                     {item.modifiers.map((m, idx) => (
                       <div key={idx} className="italic">
-                        + {m.modifier_option?.name || "Topping"}
+                        + {m.modifier_option?.name || "Tùy chọn"}
                       </div>
                     ))}
                   </div>
@@ -131,7 +137,7 @@ const OrderCard = ({ order, onStartOrder, onReadyOrder, isUpdating }) => {
                 {/* Note món ăn */}
                 {item.notes && (
                   <div className="text-xs text-orange-600 ml-8 mt-1 italic font-medium">
-                    📝 Note: "{item.notes}"
+                    📝 Ghi chú: "{item.notes}"
                   </div>
                 )}
 

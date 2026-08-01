@@ -424,7 +424,7 @@ const OrderDetailModal = ({ order, onClose, onRequestBill }) => {
                         {item.notes && (
                           <div className="mt-1.5">
                             <span className="text-[10px] text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded italic">
-                              Note: {item.notes}
+                              Ghi chú: {item.notes}
                             </span>
                           </div>
                         )}

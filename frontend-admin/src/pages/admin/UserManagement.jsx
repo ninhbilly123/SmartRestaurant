@@ -20,6 +20,16 @@ const UserManagement = () => {
     role: "admin", 
   });
 
+  const getRoleLabel = (role) => {
+    const labels = {
+      super_admin: "Siêu quản trị",
+      admin: "Quản trị viên",
+      waiter: "Phục vụ",
+      kitchen: "Bếp",
+    };
+    return labels[role] || role;
+  };
+
   // --- 1. FETCH DATA ---
   const fetchUsers = async () => {
     try {
@@ -177,7 +187,7 @@ const UserManagement = () => {
             <tr>
               <th className="p-4 border-b">STT</th>
               <th className="p-4 border-b">Thông tin</th>
-              <th className="p-4 border-b">Username</th>
+              <th className="p-4 border-b">Tên đăng nhập</th>
               <th className="p-4 border-b">Vai trò</th>
               <th className="p-4 border-b">Trạng thái</th>
               <th className="p-4 border-b text-right">Thao tác</th>
@@ -199,18 +209,18 @@ const UserManagement = () => {
                   <td className="p-4 font-mono text-blue-600 text-sm">{user.username}</td>
                   <td className="p-4">
                     <span className="bg-purple-100 text-purple-700 text-xs px-2.5 py-1 rounded-full font-bold uppercase border border-purple-200">
-                      {user.role}
+                      {getRoleLabel(user.role)}
                     </span>
                   </td>
                   <td className="p-4">
                     {/* Hiển thị trạng thái động dựa trên biến is_active */}
                     {user.is_active ? (
                       <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 text-xs px-2.5 py-1 rounded-full font-bold border border-green-200">
-                        <span className="w-1.5 h-1.5 rounded-full bg-green-600"></span> Active
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-600"></span> Hoạt động
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 bg-red-100 text-red-700 text-xs px-2.5 py-1 rounded-full font-bold border border-red-200">
-                        <span className="w-1.5 h-1.5 rounded-full bg-red-600"></span> Locked
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-600"></span> Đã khóa
                       </span>
                     )}
                   </td>

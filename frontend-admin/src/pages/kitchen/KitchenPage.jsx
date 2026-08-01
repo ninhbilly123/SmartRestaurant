@@ -211,7 +211,7 @@ const Kitchen = () => {
             <span className="text-3xl">🔥</span>
             <div>
               <h1 className="text-xl font-bold uppercase tracking-wider">
-                Kitchen Display
+                Màn hình bếp
               </h1>
               <p className="text-xs text-gray-400">
                 Đang hoạt động • {new Date().toLocaleTimeString("vi-VN")}
@@ -226,7 +226,7 @@ const Kitchen = () => {
                 soundEnabled ? "bg-green-600" : "bg-gray-700"
               }`}
             >
-              {soundEnabled ? "🔊 ON" : "🔇 OFF"}
+              {soundEnabled ? "🔊 Bật" : "🔇 Tắt"}
             </button>
             <button
               onClick={handleRefresh}
@@ -238,7 +238,7 @@ const Kitchen = () => {
               onClick={handleLogout}
               className="p-2 bg-red-600 rounded-lg text-white hover:bg-red-500 font-bold text-sm"
             >
-              Logout
+              Đăng xuất
             </button>
           </div>
         </div>
@@ -338,25 +338,25 @@ const Kitchen = () => {
       <footer className="fixed bottom-0 left-0 right-0 bg-white border-t p-2 shadow-lg z-20 hidden md:block">
         <div className="flex justify-center gap-12 text-center">
           <div>
-            <div className="text-xs text-gray-500 uppercase">Waiting</div>
+            <div className="text-xs text-gray-500 uppercase">Chờ nấu</div>
             <div className="text-xl font-bold text-red-600">
               {stats.pending}
             </div>
           </div>
           <div>
-            <div className="text-xs text-gray-500 uppercase">Cooking</div>
+            <div className="text-xs text-gray-500 uppercase">Đang nấu</div>
             <div className="text-xl font-bold text-blue-600">
               {stats.preparing}
             </div>
           </div>
           <div>
-            <div className="text-xs text-gray-500 uppercase">Ready</div>
+            <div className="text-xs text-gray-500 uppercase">Sẵn sàng</div>
             <div className="text-xl font-bold text-green-600">
               {stats.ready}
             </div>
           </div>
           <div>
-            <div className="text-xs text-gray-500 uppercase">Done Today</div>
+            <div className="text-xs text-gray-500 uppercase">Hoàn tất hôm nay</div>
             <div className="text-xl font-bold text-gray-800">
               {stats.completedToday}
             </div>

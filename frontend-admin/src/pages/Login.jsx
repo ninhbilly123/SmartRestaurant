@@ -149,7 +149,7 @@ const Login = () => {
         {/* Footer */}
         <div className="mt-8 pt-6 border-t border-gray-100">
           <p className="text-center text-xs text-gray-500">
-            © 2024 Smart Restaurant. All rights reserved.
+            © 2024 Smart Restaurant. Đã đăng ký bản quyền.
           </p>
         </div>
       </div>

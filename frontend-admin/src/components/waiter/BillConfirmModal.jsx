@@ -78,7 +78,7 @@ const BillConfirmModal = ({ isOpen, onClose, order, onConfirm }) => {
     printWindow.document.write('</head><body>');
     
     // Header
-    printWindow.document.write('<div style="text-align:center"><h2>RESTAURANT APP</h2><p>ĐC: 123 ABC, XYZ City</p></div>');
+    printWindow.document.write('<div style="text-align:center"><h2>SMART RESTAURANT</h2><p>ĐC: 123 ABC, Thành phố XYZ</p></div>');
     printWindow.document.write('<hr/>');
     printWindow.document.write(`<div class="line"><span>Bàn:</span> <span class="bold">${order.table?.table_number}</span></div>`);
     printWindow.document.write(`<div class="line"><span>Ngày:</span> <span>${new Date().toLocaleString('vi-VN')}</span></div>`);
@@ -105,7 +105,7 @@ const BillConfirmModal = ({ isOpen, onClose, order, onConfirm }) => {
              
              // Hiển thị note
              if (item.notes) {
-                 printWindow.document.write(`<div style="margin-left:20px;font-size:0.8em;font-style:italic;color:#f97316">Note: ${item.notes}</div>`);
+                 printWindow.document.write(`<div style="margin-left:20px;font-size:0.8em;font-style:italic;color:#f97316">Ghi chú: ${item.notes}</div>`);
              }
         }
     });
@@ -113,7 +113,7 @@ const BillConfirmModal = ({ isOpen, onClose, order, onConfirm }) => {
     // Footer Tiền
     printWindow.document.write('<hr/>');
     printWindow.document.write(`<div class="line"><span>Tạm tính:</span> <span>${subtotal.toLocaleString()}</span></div>`);
-    if(discountAmount > 0) printWindow.document.write(`<div class="line"><span>Giảm giá (${discountType === 'percent' ? discountValue + '%' : 'Fixed'}):</span> <span>-${discountAmount.toLocaleString()}</span></div>`);
+    if(discountAmount > 0) printWindow.document.write(`<div class="line"><span>Giảm giá (${discountType === 'percent' ? discountValue + '%' : 'Số tiền'}):</span> <span>-${discountAmount.toLocaleString()}</span></div>`);
     if(taxAmount > 0) printWindow.document.write(`<div class="line"><span>Thuế (${taxPercent}%):</span> <span>+${taxAmount.toLocaleString()}</span></div>`);
     
     printWindow.document.write('<hr/>');

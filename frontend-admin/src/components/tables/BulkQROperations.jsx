@@ -18,13 +18,13 @@ const BulkQROperations = ({ onUpdate }) => {
 			setShowConfirmRegenerate(false);
 			const result = await tableService.bulkRegenerateQR();
 			setSuccess(
-				`Successfully regenerated ${result.data.stats.successful} QR codes. All previous QR codes are now invalid.`
+				`Đã tạo lại ${result.data.stats.successful} mã QR. Tất cả mã QR cũ không còn hiệu lực.`
 			);
 			if (onUpdate) onUpdate();
 			setTimeout(() => setSuccess(""), 5000);
 		} catch (err) {
 			setError(
-				err.response?.data?.message || "Failed to regenerate QR codes"
+				err.response?.data?.message || "Không thể tạo lại mã QR"
 			);
 		} finally {
 			setLoading(false);
@@ -48,11 +48,11 @@ const BulkQROperations = ({ onUpdate }) => {
 			document.body.removeChild(link);
 			window.URL.revokeObjectURL(url);
 
-			setSuccess(`All QR codes downloaded as ${format.toUpperCase()}`);
+			setSuccess(`Đã tải tất cả mã QR dạng ${format.toUpperCase()}`);
 			setTimeout(() => setSuccess(""), 3000);
 		} catch (err) {
 			setError(
-				err.response?.data?.message || "Failed to download QR codes"
+				err.response?.data?.message || "Không thể tải mã QR"
 			);
 		} finally {
 			setLoading(false);
@@ -63,7 +63,7 @@ const BulkQROperations = ({ onUpdate }) => {
 		<Card>
 			<div className="p-6">
 				<h3 className="text-lg font-semibold mb-4">
-					Bulk QR Operations
+					Thao tác QR hàng loạt
 				</h3>
 
 				{error && (
@@ -86,7 +86,7 @@ const BulkQROperations = ({ onUpdate }) => {
 				<div className="space-y-4">
 					<div>
 						<h4 className="text-sm font-medium text-gray-700 mb-2">
-							Download All QR Codes
+							Tải tất cả mã QR
 						</h4>
 						<div className="flex gap-2 flex-wrap">
 							<Button
@@ -94,36 +94,35 @@ const BulkQROperations = ({ onUpdate }) => {
 								onClick={() => handleDownloadAll("zip")}
 								disabled={loading}
 							>
-								{loading ? "Downloading..." : "Download as ZIP"}
+								{loading ? "Đang tải..." : "Tải dạng ZIP"}
 							</Button>
 							<Button
 								variant="secondary"
 								onClick={() => handleDownloadAll("pdf")}
 								disabled={loading}
 							>
-								{loading ? "Downloading..." : "Download as PDF"}
+								{loading ? "Đang tải..." : "Tải dạng PDF"}
 							</Button>
 						</div>
 						<p className="text-xs text-gray-500 mt-2">
-							ZIP contains individual PNG files. PDF contains all
-							QR codes in a single document.
+							File ZIP chứa từng ảnh PNG riêng. File PDF chứa tất cả mã QR trong một tài liệu.
 						</p>
 					</div>
 
 					<div className="border-t pt-4">
 						<h4 className="text-sm font-medium text-gray-700 mb-2">
-							Regenerate All QR Codes
+							Tạo lại tất cả mã QR
 						</h4>
 						<Button
 							variant="danger"
 							onClick={() => setShowConfirmRegenerate(true)}
 							disabled={loading}
 						>
-							Regenerate All QR Codes
+							Tạo lại tất cả mã QR
 						</Button>
 						<p className="text-xs text-red-600 mt-2">
-							⚠️ Warning: This will invalidate ALL existing QR
-							codes. Any printed materials will stop working.
+							⚠️ Thao tác này sẽ làm TẤT CẢ mã QR hiện tại không còn hiệu lực.
+							Các bản in trước đó sẽ không dùng được.
 						</p>
 					</div>
 				</div>
@@ -133,9 +132,9 @@ const BulkQROperations = ({ onUpdate }) => {
 					isOpen={showConfirmRegenerate}
 					onClose={() => setShowConfirmRegenerate(false)}
 					onConfirm={handleBulkRegenerate}
-					title="Regenerate All QR Codes"
-					message="Are you sure you want to regenerate ALL QR codes? This will invalidate all current QR codes and any printed materials will no longer work. This action cannot be undone."
-					confirmText="Regenerate All"
+					title="Tạo lại tất cả mã QR"
+					message="Bạn có chắc muốn tạo lại toàn bộ mã QR không? Tất cả mã QR hiện tại và các bản đã in sẽ không còn hoạt động. Thao tác này không thể hoàn tác."
+					confirmText="Tạo lại tất cả"
 					variant="danger"
 				/>
 			</div>

@@ -46,7 +46,7 @@ const MenuItemList = () => {
       setItems(itemsRes.data || []);
       setCategories(categoriesRes.data || []);
     } catch (err) {
-      setError(err.message || "Failed to load menu items");
+      setError(err.message || "Không thể tải danh sách món ăn");
     } finally {
       setLoading(false);
     }
@@ -122,10 +122,10 @@ const MenuItemList = () => {
   const confirmDelete = async () => {
     try {
       await menuService.deleteItem(confirmDialog.itemId);
-      setSuccess("Menu item deleted successfully");
+      setSuccess("Đã xóa món ăn thành công");
       fetchData();
     } catch (err) {
-      setError(err.message || "Failed to delete menu item");
+      setError(err.message || "Không thể xóa món ăn");
     } finally {
       setConfirmDialog({ isOpen: false, itemId: null, itemName: "" });
     }
@@ -594,7 +594,7 @@ const MenuItemList = () => {
                         {item.is_chef_recommended ? (
                           <span
                             className="text-2xl"
-                            title="Chef's Recommendation"
+                            title="Món đề xuất của bếp"
                           >
                             ⭐
                           </span>
@@ -619,7 +619,7 @@ const MenuItemList = () => {
                               navigate(`/admin/menu/items/${item.id}`)
                             }
                             className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-all hover:scale-110"
-                            title="Edit"
+                            title="Sửa"
                           >
                             <svg
                               className="w-5 h-5"
@@ -638,7 +638,7 @@ const MenuItemList = () => {
                           <button
                             onClick={() => handleDeleteItem(item)}
                             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all hover:scale-110"
-                            title="Delete"
+                            title="Xóa"
                           >
                             <svg
                               className="w-5 h-5"

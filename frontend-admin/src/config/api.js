@@ -64,7 +64,7 @@ const setupInterceptors = (instance) => {
         return Promise.reject(new Error(message));
       } else if (error.request) {
         return Promise.reject(
-          new Error("No response from server. Please check your connection.")
+          new Error("Không nhận được phản hồi từ máy chủ. Vui lòng kiểm tra kết nối.")
         );
       } else {
         return Promise.reject(error);

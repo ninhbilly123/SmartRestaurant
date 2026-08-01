@@ -16,6 +16,14 @@ const EmployeeManagement = () => {
     role: "waiter",
   });
 
+  const getRoleLabel = (role) => {
+    const labels = {
+      waiter: "Phục vụ",
+      kitchen: "Bếp",
+    };
+    return labels[role] || role;
+  };
+
   const fetchEmployees = async () => {
     try {
       setLoading(true);
@@ -106,7 +114,7 @@ const EmployeeManagement = () => {
                   Quản lý Nhân viên
                 </h1>
                 <p className="text-gray-600 mt-1">
-                  Quản lý Phục vụ (Waiter) và Bếp (Kitchen)
+                  Quản lý nhân viên phục vụ và bếp
                 </p>
               </div>
             </div>
@@ -217,8 +225,8 @@ const EmployeeManagement = () => {
                   value={formData.role}
                   onChange={(e) => setFormData({...formData, role: e.target.value})}
                 >
-                  <option value="waiter">☕ Phục vụ (Waiter)</option>
-                  <option value="kitchen">👨‍🍳 Bếp (Kitchen)</option>
+                  <option value="waiter">☕ Phục vụ</option>
+                  <option value="kitchen">👨‍🍳 Bếp</option>
                 </select>
               </div>
               
@@ -249,7 +257,7 @@ const EmployeeManagement = () => {
                 <tr>
                   <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">STT</th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Họ tên</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Username</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Tên đăng nhập</th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Vai trò</th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Trạng thái</th>
                   <th className="px-6 py-4 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">Thao tác</th>
@@ -278,19 +286,19 @@ const EmployeeManagement = () => {
                           : 'bg-blue-100 text-blue-800 border border-blue-200'
                       }`}>
                         {u.role === 'kitchen' ? <ChefHat size={14}/> : <Coffee size={14}/>}
-                        {u.role === 'kitchen' ? 'BẾP' : 'PHỤC VỤ'}
+                        {getRoleLabel(u.role).toUpperCase()}
                       </span>
                     </td>
                     <td className="px-6 py-4">
                       {u.is_active ? (
                         <span className="inline-flex items-center gap-1.5 text-green-700 font-bold text-xs bg-green-100 px-3 py-1.5 rounded-lg border border-green-200">
                           <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                          Active
+                          Hoạt động
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1.5 text-red-700 font-bold text-xs bg-red-100 px-3 py-1.5 rounded-lg border border-red-200">
                           <span className="w-2 h-2 bg-red-500 rounded-full"></span>
-                          Locked
+                          Đã khóa
                         </span>
                       )}
                     </td>

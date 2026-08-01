@@ -4,10 +4,10 @@ const ConfirmDialog = ({
 	isOpen,
 	onClose,
 	onConfirm,
-	title = "Confirm Action",
-	message = "Are you sure you want to proceed?",
-	confirmText = "Confirm",
-	cancelText = "Cancel",
+	title = "Xác nhận thao tác",
+	message = "Bạn có chắc muốn tiếp tục không?",
+	confirmText = "Xác nhận",
+	cancelText = "Hủy",
 	variant = "danger",
 }) => {
 	if (!isOpen) return null;

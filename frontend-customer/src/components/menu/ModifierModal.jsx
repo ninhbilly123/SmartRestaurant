@@ -226,14 +226,14 @@ const ModifierModalContent = ({ item, onClose, onAddToCart }) => {
                   </div>
                 ) : (
                   <p className="text-gray-500 text-sm italic">
-                    No options available
+                    Chưa có lựa chọn
                   </p>
                 )}
               </div>
             ))
           ) : (
             <p className="text-gray-500 text-center py-4">
-              No customization options available
+              Món này chưa có tùy chọn
             </p>
           )}
         </div>
@@ -248,7 +248,7 @@ const ModifierModalContent = ({ item, onClose, onAddToCart }) => {
             <textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder="E.g., No onions, Extra spicy, No ice..."
+              placeholder="VD: Không hành, thêm cay, không đá..."
               className="w-full p-3 border border-gray-300 rounded-lg text-sm resize-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
               rows={2}
               maxLength={200}
@@ -260,7 +260,7 @@ const ModifierModalContent = ({ item, onClose, onAddToCart }) => {
 
           {/* Quantity selector */}
           <div className="flex items-center justify-between mb-4">
-            <span className="font-medium text-gray-900">Quantity</span>
+            <span className="font-medium text-gray-900">Số lượng</span>
             <div className="flex items-center border border-gray-300 rounded-lg">
               <button
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
@@ -285,7 +285,7 @@ const ModifierModalContent = ({ item, onClose, onAddToCart }) => {
             onClick={handleAddToCart}
             className="w-full py-3 bg-amber-600 text-white font-medium rounded-lg hover:bg-amber-700 transition-colors flex items-center justify-center gap-2"
           >
-            <span>Add to Cart</span>
+            <span>Thêm vào giỏ</span>
             <span className="font-bold">
               {totalPrice.toLocaleString("vi-VN")} đ
             </span>

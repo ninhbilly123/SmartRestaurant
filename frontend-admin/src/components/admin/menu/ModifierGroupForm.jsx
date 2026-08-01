@@ -27,6 +27,11 @@ const ModifierGroupForm = ({ isOpen, onClose, onSuccess, group }) => {
 	const [apiError, setApiError] = useState(null);
 
 	const isEditing = !!group;
+	const formatPrice = (price) =>
+		new Intl.NumberFormat("vi-VN", {
+			style: "currency",
+			currency: "VND",
+		}).format(parseFloat(price) || 0);
 
 	useEffect(() => {
 		if (group) {
@@ -61,9 +66,9 @@ const ModifierGroupForm = ({ isOpen, onClose, onSuccess, group }) => {
 		const newErrors = {};
 
 		if (!formData.name.trim()) {
-			newErrors.name = "Group name is required";
+			newErrors.name = "Tên nhóm là bắt buộc";
 		} else if (formData.name.trim().length > 80) {
-			newErrors.name = "Group name cannot exceed 80 characters";
+			newErrors.name = "Tên nhóm không được vượt quá 80 ký tự";
 		}
 
 		if (
@@ -71,7 +76,7 @@ const ModifierGroupForm = ({ isOpen, onClose, onSuccess, group }) => {
 			formData.max_selections > 0
 		) {
 			newErrors.min_selections =
-				"Min selections cannot be greater than max selections";
+				"Số lựa chọn tối thiểu không được lớn hơn số tối đa";
 		}
 
 		if (
@@ -79,12 +84,12 @@ const ModifierGroupForm = ({ isOpen, onClose, onSuccess, group }) => {
 			formData.max_selections > 1
 		) {
 			newErrors.max_selections =
-				"Single select cannot have max selections > 1";
+				"Kiểu chọn một không thể có số lựa chọn tối đa lớn hơn 1";
 		}
 
 		if (formData.is_required && formData.min_selections === 0) {
 			newErrors.min_selections =
-				"Required groups must have at least 1 minimum selection";
+				"Nhóm bắt buộc phải có tối thiểu 1 lựa chọn";
 		}
 
 		setErrors(newErrors);
@@ -137,7 +142,7 @@ const ModifierGroupForm = ({ isOpen, onClose, onSuccess, group }) => {
 		if (!newOption.name.trim()) {
 			setErrors((prev) => ({
 				...prev,
-				newOption: "Option name is required",
+				newOption: "Tên lựa chọn là bắt buộc",
 			}));
 			return;
 		}
@@ -194,7 +199,7 @@ const ModifierGroupForm = ({ isOpen, onClose, onSuccess, group }) => {
 
 			onSuccess();
 		} catch (err) {
-			setApiError(err.message || "Failed to save modifier group");
+			setApiError(err.message || "Không thể lưu nhóm tùy chọn");
 		} finally {
 			setLoading(false);
 		}
@@ -204,7 +209,7 @@ const ModifierGroupForm = ({ isOpen, onClose, onSuccess, group }) => {
 		<Modal
 			isOpen={isOpen}
 			onClose={onClose}
-			title={isEditing ? "Edit Modifier Group" : "Create Modifier Group"}
+			title={isEditing ? "Chỉnh sửa nhóm tùy chọn" : "Tạo nhóm tùy chọn"}
 			size="lg"
 		>
 			<form onSubmit={handleSubmit}>
@@ -219,11 +224,11 @@ const ModifierGroupForm = ({ isOpen, onClose, onSuccess, group }) => {
 				<div className="space-y-4">
 					{/* Group Name */}
 					<Input
-						label="Group Name"
+						label="Tên nhóm"
 						name="name"
 						value={formData.name}
 						onChange={handleChange}
-						placeholder="e.g., Size, Toppings, Cooking Preference"
+						placeholder="VD: Kích cỡ, Topping, Cách chế biến"
 						error={errors.name}
 						required
 					/>
@@ -232,7 +237,7 @@ const ModifierGroupForm = ({ isOpen, onClose, onSuccess, group }) => {
 					<div className="grid grid-cols-2 gap-4">
 						<div>
 							<label className="block text-sm font-medium text-gray-700 mb-1">
-								Selection Type{" "}
+								Kiểu lựa chọn{" "}
 								<span className="text-red-500">*</span>
 							</label>
 							<select
@@ -242,22 +247,22 @@ const ModifierGroupForm = ({ isOpen, onClose, onSuccess, group }) => {
 								className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
 							>
 								<option value="single">
-									Single Select (Radio)
+									Chọn một (Radio)
 								</option>
 								<option value="multiple">
-									Multiple Select (Checkbox)
+									Chọn nhiều (Checkbox)
 								</option>
 							</select>
 							<p className="text-xs text-gray-500 mt-1">
 								{formData.selection_type === "single"
-									? "Customer can choose only one option"
-									: "Customer can choose multiple options"}
+									? "Khách chỉ được chọn một lựa chọn"
+									: "Khách có thể chọn nhiều lựa chọn"}
 							</p>
 						</div>
 
 						<div>
 							<label className="block text-sm font-medium text-gray-700 mb-1">
-								Required?
+								Bắt buộc?
 							</label>
 							<label className="flex items-center gap-2 mt-2 cursor-pointer">
 								<input
@@ -268,7 +273,7 @@ const ModifierGroupForm = ({ isOpen, onClose, onSuccess, group }) => {
 									className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
 								/>
 								<span className="text-sm text-gray-700">
-									Customer must select at least one option
+									Khách phải chọn ít nhất một lựa chọn
 								</span>
 							</label>
 						</div>
@@ -279,7 +284,7 @@ const ModifierGroupForm = ({ isOpen, onClose, onSuccess, group }) => {
 						<div className="grid grid-cols-2 gap-4">
 							<div>
 								<label className="block text-sm font-medium text-gray-700 mb-1">
-									Min Selections
+									Số chọn tối thiểu
 								</label>
 								<input
 									type="number"
@@ -302,7 +307,7 @@ const ModifierGroupForm = ({ isOpen, onClose, onSuccess, group }) => {
 
 							<div>
 								<label className="block text-sm font-medium text-gray-700 mb-1">
-									Max Selections
+									Số chọn tối đa
 								</label>
 								<input
 									type="number"
@@ -322,7 +327,7 @@ const ModifierGroupForm = ({ isOpen, onClose, onSuccess, group }) => {
 									</p>
 								)}
 								<p className="text-xs text-gray-500 mt-1">
-									0 = unlimited
+									0 = không giới hạn
 								</p>
 							</div>
 						</div>
@@ -331,7 +336,7 @@ const ModifierGroupForm = ({ isOpen, onClose, onSuccess, group }) => {
 					{/* Display Order & Status */}
 					<div className="grid grid-cols-2 gap-4">
 						<Input
-							label="Display Order"
+							label="Thứ tự hiển thị"
 							name="display_order"
 							type="number"
 							value={formData.display_order}
@@ -341,7 +346,7 @@ const ModifierGroupForm = ({ isOpen, onClose, onSuccess, group }) => {
 
 						<div>
 							<label className="block text-sm font-medium text-gray-700 mb-1">
-								Status
+								Trạng thái
 							</label>
 							<select
 								name="status"
@@ -349,8 +354,8 @@ const ModifierGroupForm = ({ isOpen, onClose, onSuccess, group }) => {
 								onChange={handleChange}
 								className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
 							>
-								<option value="active">Active</option>
-								<option value="inactive">Inactive</option>
+								<option value="active">Hoạt động</option>
+								<option value="inactive">Ngừng hoạt động</option>
 							</select>
 						</div>
 					</div>
@@ -358,7 +363,7 @@ const ModifierGroupForm = ({ isOpen, onClose, onSuccess, group }) => {
 					{/* Options Section */}
 					<div className="border-t pt-4 mt-4">
 						<h3 className="text-lg font-medium text-gray-900 mb-3">
-							Options
+							Lựa chọn
 						</h3>
 
 						{/* Existing Options */}
@@ -375,14 +380,12 @@ const ModifierGroupForm = ({ isOpen, onClose, onSuccess, group }) => {
 											</span>
 											<span className="text-sm text-gray-500">
 												{option.price_adjustment > 0
-													? `+$${parseFloat(
-															option.price_adjustment
-													  ).toFixed(2)}`
-													: "+$0.00"}
+													? `+${formatPrice(option.price_adjustment)}`
+													: `+${formatPrice(0)}`}
 											</span>
 											{option.isNew && (
 												<span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
-													New
+													Mới
 												</span>
 											)}
 										</div>
@@ -416,14 +419,14 @@ const ModifierGroupForm = ({ isOpen, onClose, onSuccess, group }) => {
 						<div className="flex gap-2 items-end">
 							<div className="flex-1">
 								<label className="block text-sm font-medium text-gray-700 mb-1">
-									Option Name
+									Tên lựa chọn
 								</label>
 								<input
 									type="text"
 									name="name"
 									value={newOption.name}
 									onChange={handleOptionChange}
-									placeholder="e.g., Small, Large, Extra Cheese"
+									placeholder="VD: Nhỏ, Lớn, Thêm phô mai"
 									className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
 										errors.newOption
 											? "border-red-500"
@@ -438,7 +441,7 @@ const ModifierGroupForm = ({ isOpen, onClose, onSuccess, group }) => {
 							</div>
 							<div className="w-32">
 								<label className="block text-sm font-medium text-gray-700 mb-1">
-									Price (+$)
+									Giá cộng thêm
 								</label>
 								<input
 									type="number"
@@ -456,7 +459,7 @@ const ModifierGroupForm = ({ isOpen, onClose, onSuccess, group }) => {
 								variant="outline"
 								onClick={addOption}
 							>
-								Add
+								Thêm
 							</Button>
 						</div>
 					</div>
@@ -470,7 +473,7 @@ const ModifierGroupForm = ({ isOpen, onClose, onSuccess, group }) => {
 						onClick={onClose}
 						disabled={loading}
 					>
-						Cancel
+						Hủy
 					</Button>
 					<Button type="submit" disabled={loading}>
 						{loading ? (
@@ -494,12 +497,12 @@ const ModifierGroupForm = ({ isOpen, onClose, onSuccess, group }) => {
 										d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
 									/>
 								</svg>
-								Saving...
+								Đang lưu...
 							</span>
 						) : isEditing ? (
-							"Update Group"
+							"Cập nhật nhóm"
 						) : (
-							"Create Group"
+							"Tạo nhóm"
 						)}
 					</Button>
 				</div>
