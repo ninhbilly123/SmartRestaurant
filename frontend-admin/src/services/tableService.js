@@ -1,5 +1,4 @@
-// src/services/tableService.js
-import { adminApi, publicApi } from "../config/api";
+import { adminApi, apiClient } from "../config/api";
 
 const tableService = {
   // Get tables with optional server-side filtering and sorting
@@ -79,7 +78,7 @@ const tableService = {
 
   // Verify QR code token (public endpoint)
   verifyQRToken: async (tableId, token) => {
-    const response = await publicApi.get("/menu", {
+    const response = await apiClient.get("/menu", {
       params: { table: tableId, token },
     });
     return response.data;

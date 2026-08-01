@@ -5,6 +5,8 @@ import {
   getRoleLabel,
 } from "../../constants/roles";
 import useUserManagement from "../../hooks/useUserManagement";
+import Alert from "../../components/common/Alert";
+import ConfirmDialog from "../../components/common/ConfirmDialog";
 
 const ADMIN_FORM_LABELS = {
   createSuccess: "Tạo tài khoản Admin thành công!",
@@ -21,16 +23,22 @@ const UserManagement = () => {
   );
 
   const {
+    clearMessage,
+    closeToggleDialog,
+    confirmToggleStatus,
     formData,
     handleChange,
     handleEditClick,
     handleSubmit,
-    handleToggleStatus,
     isEditing,
     loading,
+    message,
+    pendingStatusUser,
+    requestToggleStatus,
     resetForm,
     showForm,
     toggleForm,
+    toggleDialogMessage,
     users,
   } = useUserManagement({
     defaultFormData: ADMIN_DEFAULT_FORM,
@@ -53,6 +61,14 @@ const UserManagement = () => {
           {showForm ? <><X size={18}/> Đóng</> : <><UserPlus size={18}/> Tạo Admin Mới</>}
         </button>
       </div>
+
+      {message && (
+        <Alert
+          type={message.type}
+          message={message.text}
+          onClose={clearMessage}
+        />
+      )}
 
       {/* FORM (TẠO MỚI HOẶC SỬA) */}
       {showForm && (
@@ -165,7 +181,7 @@ const UserManagement = () => {
                       </button>
 
                       <button 
-                        onClick={() => handleToggleStatus(user)}
+                        onClick={() => requestToggleStatus(user)}
                         className={`p-2 rounded-lg transition-colors ${
                           user.is_active 
                             ? "text-red-600 bg-red-50 hover:bg-red-100" 
@@ -183,6 +199,16 @@ const UserManagement = () => {
           </tbody>
         </table>
       </div>
+
+      <ConfirmDialog
+        isOpen={Boolean(pendingStatusUser)}
+        onClose={closeToggleDialog}
+        onConfirm={() => confirmToggleStatus(pendingStatusUser)}
+        title="Xác nhận trạng thái tài khoản"
+        message={toggleDialogMessage}
+        confirmText="Xác nhận"
+        variant={pendingStatusUser?.is_active ? "danger" : "info"}
+      />
     </div>
   );
 };

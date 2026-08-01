@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { categoryService, menuItemService } from "../../../services/menu";
+import React from "react";
+import useMenuItemList from "../../../hooks/menu/useMenuItemList";
 import Button from "../../common/Button";
 import Badge from "../../common/Badge";
 import Loading from "../../common/Loading";
@@ -8,133 +7,33 @@ import Alert from "../../common/Alert";
 import ConfirmDialog from "../../common/ConfirmDialog";
 
 const MenuItemList = () => {
-  const navigate = useNavigate();
-  const [items, setItems] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
-
-  const [filters, setFilters] = useState({
-    category_id: "all",
-    status: "all",
-    search: "",
-  });
-  const [sortBy, setSortBy] = useState("created_at");
-  const [sortOrder, setSortOrder] = useState("desc");
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 4;
-
-  const [confirmDialog, setConfirmDialog] = useState({
-    isOpen: false,
-    itemId: null,
-    itemName: "",
-  });
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const [itemsRes, categoriesRes] = await Promise.all([
-        menuItemService.getAllItems(),
-        categoryService.getCategories(),
-      ]);
-      setItems(itemsRes.data || []);
-      setCategories(categoriesRes.data || []);
-    } catch (err) {
-      setError(err.message || "Không thể tải danh sách món ăn");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filteredItems = items.filter((item) => {
-    if (item.is_deleted) return false;
-    if (
-      filters.category_id !== "all" &&
-      item.category_id !== filters.category_id
-    )
-      return false;
-    if (filters.status !== "all" && item.status !== filters.status)
-      return false;
-    if (
-      filters.search &&
-      !item.name.toLowerCase().includes(filters.search.toLowerCase())
-    )
-      return false;
-    return true;
-  });
-
-  const sortedItems = [...filteredItems].sort((a, b) => {
-    let aVal = a[sortBy];
-    let bVal = b[sortBy];
-
-    if (sortBy === "name") {
-      aVal = aVal?.toLowerCase() || "";
-      bVal = bVal?.toLowerCase() || "";
-    }
-    if (sortBy === "price" || sortBy === "popularity") {
-      aVal = parseFloat(aVal) || 0;
-      bVal = parseFloat(bVal) || 0;
-    }
-    if (sortBy === "created_at") {
-      aVal = new Date(aVal);
-      bVal = new Date(bVal);
-    }
-
-    if (sortOrder === "asc") return aVal > bVal ? 1 : -1;
-    return aVal < bVal ? 1 : -1;
-  });
-
-  const totalPages = Math.ceil(sortedItems.length / itemsPerPage);
-  const paginatedItems = sortedItems.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage,
-  );
-
-  const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    setFilters((prev) => ({ ...prev, [name]: value }));
-    setCurrentPage(1);
-  };
-
-  const handleSort = (field) => {
-    if (sortBy === field) {
-      setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
-    } else {
-      setSortBy(field);
-      setSortOrder("asc");
-    }
-  };
-
-  const handleDeleteItem = (item) => {
-    setConfirmDialog({
-      isOpen: true,
-      itemId: item.id,
-      itemName: item.name,
-    });
-  };
-
-  const confirmDelete = async () => {
-    try {
-      await menuItemService.deleteItem(confirmDialog.itemId);
-      setSuccess("Đã xóa món ăn thành công");
-      fetchData();
-    } catch (err) {
-      setError(err.message || "Không thể xóa món ăn");
-    } finally {
-      setConfirmDialog({ isOpen: false, itemId: null, itemName: "" });
-    }
-  };
-
-  const getCategoryName = (categoryId) => {
-    const category = categories.find((c) => c.id === categoryId);
-    return category ? category.name : "-";
-  };
+  const {
+    categories,
+    closeConfirmDialog,
+    confirmDelete,
+    confirmDialog,
+    currentPage,
+    error,
+    filters,
+    formatPrice,
+    getCategoryName,
+    handleDeleteItem,
+    handleFilterChange,
+    handleSort,
+    items,
+    itemsPerPage,
+    loading,
+    navigate,
+    paginatedItems,
+    setCurrentPage,
+    setError,
+    setSuccess,
+    sortBy,
+    sortOrder,
+    sortedItems,
+    success,
+    totalPages,
+  } = useMenuItemList();
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -149,20 +48,13 @@ const MenuItemList = () => {
     }
   };
 
-  const SortIcon = ({ field }) => {
+  const renderSortIcon = (field) => {
     if (sortBy !== field) return <span className="text-gray-400 ml-1">⇅</span>;
     return sortOrder === "asc" ? (
       <span className="ml-1 text-blue-600">↑</span>
     ) : (
       <span className="ml-1 text-blue-600">↓</span>
     );
-  };
-
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-    }).format(price);
   };
 
   if (loading)
@@ -338,25 +230,25 @@ const MenuItemList = () => {
                   onClick={() => handleSort("created_at")}
                   className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${sortBy === "created_at" ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
                 >
-                  Ngày tạo <SortIcon field="created_at" />
+                  Ngày tạo {renderSortIcon("created_at")}
                 </button>
                 <button
                   onClick={() => handleSort("price")}
                   className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${sortBy === "price" ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
                 >
-                  Giá <SortIcon field="price" />
+                  Giá {renderSortIcon("price")}
                 </button>
                 <button
                   onClick={() => handleSort("name")}
                   className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${sortBy === "name" ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
                 >
-                  Tên <SortIcon field="name" />
+                  Tên {renderSortIcon("name")}
                 </button>
                 <button
                   onClick={() => handleSort("popularity")}
                   className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${sortBy === "popularity" ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
                 >
-                  Phổ biến <SortIcon field="popularity" />
+                  Phổ biến {renderSortIcon("popularity")}
                 </button>
               </div>
             </div>
@@ -718,15 +610,9 @@ const MenuItemList = () => {
         )}
 
         {/* Confirm Dialog */}
-        <ConfirmDialog
-          isOpen={confirmDialog.isOpen}
-          onClose={() =>
-            setConfirmDialog({
-              isOpen: false,
-              itemId: null,
-              itemName: "",
-            })
-          }
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={closeConfirmDialog}
           onConfirm={confirmDelete}
           title="Xóa món ăn"
           message={`Bạn có chắc chắn muốn xóa "${confirmDialog.itemName}"? Hành động này không thể hoàn tác.`}

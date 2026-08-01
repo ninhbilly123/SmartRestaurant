@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { categoryService } from "../../../services/menu";
+import React from "react";
+import useCategoryList from "../../../hooks/menu/useCategoryList";
 import Button from "../../common/Button";
 import Badge from "../../common/Badge";
 import Loading from "../../common/Loading";
@@ -8,138 +8,31 @@ import ConfirmDialog from "../../common/ConfirmDialog";
 import CategoryForm from "./CategoryForm";
 
 const CategoryList = () => {
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
-  const [sortBy, setSortBy] = useState("display_order");
-  const [sortOrder, setSortOrder] = useState("asc");
+  const {
+    categories,
+    closeConfirmDialog,
+    closeForm,
+    confirmAction,
+    confirmDialog,
+    editingCategory,
+    error,
+    handleAddCategory,
+    handleDeleteCategory,
+    handleEditCategory,
+    handleFormSuccess,
+    handleSort,
+    handleStatusChange,
+    isFormOpen,
+    loading,
+    setError,
+    setSuccess,
+    sortBy,
+    sortOrder,
+    sortedCategories,
+    success,
+  } = useCategoryList();
 
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState(null);
-
-  const [confirmDialog, setConfirmDialog] = useState({
-    isOpen: false,
-    categoryId: null,
-    categoryName: "",
-    action: null,
-  });
-
-  useEffect(() => {
-    fetchCategories();
-  }, []);
-
-  const fetchCategories = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await categoryService.getCategories();
-      setCategories(response.data || []);
-    } catch (err) {
-      setError(err.message || "Không thể tải danh mục");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const sortedCategories = [...categories].sort((a, b) => {
-    let aVal = a[sortBy];
-    let bVal = b[sortBy];
-
-    if (sortBy === "name") {
-      aVal = aVal?.toLowerCase() || "";
-      bVal = bVal?.toLowerCase() || "";
-    }
-
-    if (sortBy === "created_at") {
-      aVal = new Date(aVal);
-      bVal = new Date(bVal);
-    }
-
-    if (sortOrder === "asc") {
-      return aVal > bVal ? 1 : -1;
-    }
-    return aVal < bVal ? 1 : -1;
-  });
-
-  const handleSort = (field) => {
-    if (sortBy === field) {
-      setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
-    } else {
-      setSortBy(field);
-      setSortOrder("asc");
-    }
-  };
-
-  const handleAddCategory = () => {
-    setEditingCategory(null);
-    setIsFormOpen(true);
-  };
-
-  const handleEditCategory = (category) => {
-    setEditingCategory(category);
-    setIsFormOpen(true);
-  };
-
-  const handleDeleteCategory = (category) => {
-    setConfirmDialog({
-      isOpen: true,
-      categoryId: category.id,
-      categoryName: category.name,
-      action: "delete",
-    });
-  };
-
-  const handleStatusChange = (category) => {
-    const newStatus = category.status === "active" ? "inactive" : "active";
-    setConfirmDialog({
-      isOpen: true,
-      categoryId: category.id,
-      categoryName: category.name,
-      action: "status",
-      newStatus,
-    });
-  };
-
-  const confirmAction = async () => {
-    try {
-      const { categoryId, action, newStatus } = confirmDialog;
-
-      if (action === "delete") {
-        await categoryService.deleteCategory(categoryId);
-        setSuccess("Xóa danh mục thành công");
-      } else if (action === "status") {
-        await categoryService.updateCategoryStatus(categoryId, newStatus);
-        setSuccess(
-          `Đã cập nhật trạng thái danh mục thành ${newStatus === "active" ? "Hoạt động" : "Tạm ngừng"}`,
-        );
-      }
-
-      fetchCategories();
-    } catch (err) {
-      setError(err.message || "Không thể thực hiện thao tác");
-    } finally {
-      setConfirmDialog({
-        isOpen: false,
-        categoryId: null,
-        categoryName: "",
-        action: null,
-      });
-    }
-  };
-
-  const handleFormSuccess = () => {
-    setIsFormOpen(false);
-    setEditingCategory(null);
-    fetchCategories();
-    setSuccess(
-      editingCategory
-        ? "Cập nhật danh mục thành công"
-        : "Tạo danh mục thành công",
-    );
-  };
-
-  const SortIcon = ({ field }) => {
+  const renderSortIcon = (field) => {
     if (sortBy !== field) return <span className="text-gray-400 ml-1">⇅</span>;
     return sortOrder === "asc" ? (
       <span className="ml-1 text-purple-600">↑</span>
@@ -289,7 +182,7 @@ const CategoryList = () => {
                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
               >
-                Thứ tự <SortIcon field="display_order" />
+                Thứ tự {renderSortIcon("display_order")}
               </button>
               <button
                 onClick={() => handleSort("name")}
@@ -299,7 +192,7 @@ const CategoryList = () => {
                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
               >
-                Tên <SortIcon field="name" />
+                Tên {renderSortIcon("name")}
               </button>
               <button
                 onClick={() => handleSort("created_at")}
@@ -309,7 +202,7 @@ const CategoryList = () => {
                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
               >
-                Ngày tạo <SortIcon field="created_at" />
+                Ngày tạo {renderSortIcon("created_at")}
               </button>
             </div>
           </div>
@@ -511,10 +404,7 @@ const CategoryList = () => {
         {/* Category Form Modal */}
         <CategoryForm
           isOpen={isFormOpen}
-          onClose={() => {
-            setIsFormOpen(false);
-            setEditingCategory(null);
-          }}
+          onClose={closeForm}
           onSuccess={handleFormSuccess}
           category={editingCategory}
         />
@@ -522,14 +412,7 @@ const CategoryList = () => {
         {/* Confirm Dialog */}
         <ConfirmDialog
           isOpen={confirmDialog.isOpen}
-          onClose={() =>
-            setConfirmDialog({
-              isOpen: false,
-              categoryId: null,
-              categoryName: "",
-              action: null,
-            })
-          }
+          onClose={closeConfirmDialog}
           onConfirm={confirmAction}
           title={
             confirmDialog.action === "delete"
@@ -546,9 +429,7 @@ const CategoryList = () => {
                 } "${confirmDialog.categoryName}"?`
           }
           confirmText={confirmDialog.action === "delete" ? "Xóa" : "Xác nhận"}
-          confirmVariant={
-            confirmDialog.action === "delete" ? "danger" : "primary"
-          }
+          variant={confirmDialog.action === "delete" ? "danger" : "info"}
         />
       </div>
     </div>

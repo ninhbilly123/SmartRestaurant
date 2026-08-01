@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
-import tableService from "../../services/tableService";
+import React from "react";
+import useTableList from "../../hooks/useTableList";
 import Button from "../common/Button";
 import Badge from "../common/Badge";
 import Loading from "../common/Loading";
@@ -8,145 +7,30 @@ import Alert from "../common/Alert";
 import ConfirmDialog from "../common/ConfirmDialog";
 
 const TableList = () => {
-	const navigate = useNavigate();
-	const [tables, setTables] = useState([]);
-	const [summaryTables, setSummaryTables] = useState([]);
-	const [locationOptions, setLocationOptions] = useState([]);
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState(null);
-	const [success, setSuccess] = useState(null);
+	const {
+		closeConfirmDialog,
+		confirmDialog,
+		confirmStatusChange,
+		error,
+		filters,
+		handleDownloadAllQR,
+		handleFilterChange,
+		handleSort,
+		handleStatusChange,
+		loading,
+		locationOptions,
+		navigate,
+		resetFilters,
+		setError,
+		setSuccess,
+		sortBy,
+		sortOrder,
+		success,
+		summaryTables,
+		tables,
+	} = useTableList();
 
-	// Filter and sort states
-	const [filters, setFilters] = useState({
-		status: "all",
-		location: "all",
-		search: "",
-	});
-	const [debouncedSearch, setDebouncedSearch] = useState("");
-	const [sortBy, setSortBy] = useState("created_at");
-	const [sortOrder, setSortOrder] = useState("desc");
-
-	// Confirm dialog state
-	const [confirmDialog, setConfirmDialog] = useState({
-		isOpen: false,
-		tableId: null,
-		tableName: "",
-		action: null,
-	});
-
-	const fetchTables = useCallback(async () => {
-		try {
-			setLoading(true);
-			setError(null);
-			const response = await tableService.getAllTables({
-				status: filters.status,
-				location: filters.location,
-				search: debouncedSearch,
-				sortBy,
-				sortOrder,
-			});
-			setTables(response.data || []);
-		} catch (err) {
-			setError(err.message || "Không thể tải danh sách bàn");
-		} finally {
-			setLoading(false);
-		}
-	}, [debouncedSearch, filters.location, filters.status, sortBy, sortOrder]);
-
-	const fetchLocationOptions = useCallback(async () => {
-		try {
-			const response = await tableService.getAllTables({
-				sortBy: "location",
-				sortOrder: "asc",
-			});
-			const locations = [
-				...new Set((response.data || []).map((table) => table.location).filter(Boolean)),
-			];
-			setSummaryTables(response.data || []);
-			setLocationOptions(locations.map((location) => ({ value: location, label: location })));
-		} catch (err) {
-			console.error("Không thể tải danh sách vị trí bàn:", err);
-		}
-	}, []);
-
-	useEffect(() => {
-		const timeoutId = setTimeout(() => {
-			setDebouncedSearch(filters.search);
-		}, 300);
-
-		return () => clearTimeout(timeoutId);
-	}, [filters.search]);
-
-	useEffect(() => {
-		fetchTables();
-	}, [fetchTables]);
-
-	useEffect(() => {
-		fetchLocationOptions();
-	}, [fetchLocationOptions]);
-
-	const handleFilterChange = (e) => {
-		const { name, value } = e.target;
-		setFilters((prev) => ({ ...prev, [name]: value }));
-	};
-
-	const handleSort = (field) => {
-		if (sortBy === field) {
-			setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
-		} else {
-			setSortBy(field);
-			setSortOrder("asc");
-		}
-	};
-
-	const handleStatusChange = (tableId, tableName, currentStatus) => {
-		const newStatus = currentStatus === "active" ? "inactive" : "active";
-		setConfirmDialog({
-			isOpen: true,
-			tableId,
-			tableName,
-			action: "status",
-			newStatus,
-		});
-	};
-
-	const confirmStatusChange = async () => {
-		try {
-			const { tableId, newStatus } = confirmDialog;
-			await tableService.updateTableStatus(tableId, newStatus);
-			setSuccess(`Đã cập nhật trạng thái bàn thành ${newStatus === "active" ? "hoạt động" : "ngừng hoạt động"}`);
-			fetchTables();
-		} catch (err) {
-			setError(err.message || "Không thể cập nhật trạng thái bàn");
-		}
-	};
-
-	const handleDownloadAllQR = async (format = "zip") => {
-		try {
-			setError(null);
-			const blob = await tableService.downloadAllQRCodes(format);
-
-			// Create download link
-			const url = window.URL.createObjectURL(blob);
-			const link = document.createElement("a");
-			link.href = url;
-			link.download = `all_tables_qr.${format}`;
-			document.body.appendChild(link);
-			link.click();
-			document.body.removeChild(link);
-			window.URL.revokeObjectURL(url);
-
-			setSuccess(`Đã tải tất cả mã QR dạng ${format.toUpperCase()}`);
-		} catch (err) {
-			setError(err.message || "Không thể tải mã QR");
-		}
-	};
-
-	const getLocationOptions = () => {
-		return locationOptions;
-	};
-
-	const SortIcon = ({ field }) => {
+	const renderSortIcon = (field) => {
 		if (sortBy !== field) return <span className="text-gray-400 ml-1">⇅</span>;
 		return sortOrder === "asc" ? 
 			<span className="ml-1 text-blue-600">↑</span> : 
@@ -273,7 +157,7 @@ const TableList = () => {
 								className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-gray-50 hover:bg-white"
 							>
 								<option value="all">Tất cả vị trí</option>
-								{getLocationOptions().map((opt) => (
+								{locationOptions.map((opt) => (
 									<option key={opt.value} value={opt.value}>
 										{opt.label}
 									</option>
@@ -286,13 +170,7 @@ const TableList = () => {
 							<Button
 								variant="outline"
 								className="w-full"
-								onClick={() =>
-									setFilters({
-										status: "all",
-										location: "all",
-										search: "",
-									})
-								}
+								onClick={resetFilters}
 							>
 								<span className="flex items-center justify-center gap-2">
 									<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -389,7 +267,7 @@ const TableList = () => {
 										>
 											<div className="flex items-center">
 												Số bàn
-												<SortIcon field="table_number" />
+												{renderSortIcon("table_number")}
 											</div>
 										</th>
 										<th
@@ -398,7 +276,7 @@ const TableList = () => {
 										>
 											<div className="flex items-center">
 												Sức chứa
-												<SortIcon field="capacity" />
+												{renderSortIcon("capacity")}
 											</div>
 										</th>
 										<th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
@@ -416,7 +294,7 @@ const TableList = () => {
 										>
 											<div className="flex items-center">
 												Ngày tạo
-												<SortIcon field="created_at" />
+												{renderSortIcon("created_at")}
 											</div>
 										</th>
 										<th className="px-6 py-4 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">
@@ -522,9 +400,7 @@ const TableList = () => {
 			{/* Confirm Dialog */}
 			<ConfirmDialog
 				isOpen={confirmDialog.isOpen}
-				onClose={() =>
-					setConfirmDialog({ ...confirmDialog, isOpen: false })
-				}
+				onClose={closeConfirmDialog}
 				onConfirm={confirmStatusChange}
 				title={`${
 					confirmDialog.newStatus === "active"

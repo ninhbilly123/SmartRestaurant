@@ -8,3 +8,4 @@ export { default as Badge } from "./Badge";
 export { default as Loading } from "./Loading";
 export { default as Alert } from "./Alert";
 export { default as ConfirmDialog } from "./ConfirmDialog";
+export { default as PromptDialog } from "./PromptDialog";

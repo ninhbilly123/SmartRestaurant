@@ -14,7 +14,7 @@ const adminApi = axios.create({
   },
 });
 
-const publicApi = axios.create({
+const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
@@ -39,12 +39,10 @@ const setupInterceptors = (instance) => {
     (response) => response,
     (error) => {
       if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-        console.warn("Token hết hạn hoặc không hợp lệ. Đang đăng xuất...");
         clearAuth();
-        window.location.href = '/#/login'; 
+        window.location.href = "/#/login";
       }
 
-      
       if (error.response) {
         const message =
           error.response.data?.message ||
@@ -63,6 +61,6 @@ const setupInterceptors = (instance) => {
 };
 
 setupInterceptors(adminApi);
-setupInterceptors(publicApi);
+setupInterceptors(apiClient);
 
-export { adminApi, publicApi };
+export { adminApi, apiClient };

@@ -6,6 +6,8 @@ import {
   getRoleLabel,
 } from "../../constants/roles";
 import useUserManagement from "../../hooks/useUserManagement";
+import Alert from "../../components/common/Alert";
+import ConfirmDialog from "../../components/common/ConfirmDialog";
 
 const EMPLOYEE_FORM_LABELS = {
   createSuccess: "Tạo nhân viên mới thành công!",
@@ -22,16 +24,22 @@ const EmployeeManagement = () => {
   );
 
   const {
+    clearMessage,
+    closeToggleDialog,
+    confirmToggleStatus,
     formData,
     handleChange,
     handleEditClick,
     handleSubmit,
-    handleToggleStatus,
     isEditing,
     loading,
+    message,
+    pendingStatusUser,
+    requestToggleStatus,
     resetForm,
     showForm,
     toggleForm,
+    toggleDialogMessage,
     users,
   } = useUserManagement({
     defaultFormData: EMPLOYEE_DEFAULT_FORM,
@@ -81,6 +89,15 @@ const EmployeeManagement = () => {
             </button>
           </div>
         </div>
+
+        {/* STATS */}
+        {message && (
+          <Alert
+            type={message.type}
+            message={message.text}
+            onClose={clearMessage}
+          />
+        )}
 
         {/* STATS */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -267,7 +284,7 @@ const EmployeeManagement = () => {
                           <Edit size={16}/>
                         </button>
                         <button 
-                          onClick={() => handleToggleStatus(u)} 
+                          onClick={() => requestToggleStatus(u)} 
                           className={`p-2.5 rounded-lg transition-all hover:scale-110 ${
                             u.is_active 
                               ? 'text-red-600 bg-red-50 hover:bg-red-100' 
@@ -285,6 +302,16 @@ const EmployeeManagement = () => {
             </table>
           </div>
         </div>
+
+        <ConfirmDialog
+          isOpen={Boolean(pendingStatusUser)}
+          onClose={closeToggleDialog}
+          onConfirm={() => confirmToggleStatus(pendingStatusUser)}
+          title="Xác nhận trạng thái nhân viên"
+          message={toggleDialogMessage}
+          confirmText="Xác nhận"
+          variant={pendingStatusUser?.is_active ? "danger" : "info"}
+        />
       </div>
     </div>
   );

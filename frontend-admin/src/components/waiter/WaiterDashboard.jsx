@@ -1,18 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  LogOut,
-  Utensils,
-  Bell,
-  CheckCircle,
-  Clock,
-  Trash2,
-  XCircle,
-  CreditCard, // Mới
-  DollarSign, // Mới
-} from "lucide-react";
+import { Utensils } from "lucide-react";
 import { io } from "socket.io-client";
-import BillConfirmModal from "./BillConfirmModal"; // Đảm bảo đường dẫn đúng
+import BillConfirmModal from "./BillConfirmModal";
+import WaiterHeader from "./WaiterHeader";
+import WaiterOrderCard from "./WaiterOrderCard";
+import Alert from "../common/Alert";
+import ConfirmDialog from "../common/ConfirmDialog";
+import PromptDialog from "../common/PromptDialog";
 import waiterService from "../../services/waiterService";
 import { clearAuth, getAuthToken } from "../../utils/auth";
 
@@ -32,6 +27,10 @@ const WaiterDashboard = () => {
   // --- STATE CHO MODAL THANH TOÁN ---
   const [selectedOrderForBill, setSelectedOrderForBill] = useState(null);
   const [isBillModalOpen, setIsBillModalOpen] = useState(false);
+  const [notification, setNotification] = useState(null);
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const [cashPaymentOrderId, setCashPaymentOrderId] = useState(null);
+  const [rejectTarget, setRejectTarget] = useState(null);
 
   const socketRef = useRef();
   const audioRef = useRef();
@@ -51,12 +50,13 @@ const WaiterDashboard = () => {
     }
   };
 
-  // --- 0. HÀM ĐĂNG XUẤT ---
   const handleLogout = () => {
-    if (window.confirm("Bạn có chắc chắn muốn đăng xuất?")) {
-      clearAuth();
-      navigate("/login");
-    }
+    setLogoutDialogOpen(true);
+  };
+
+  const confirmLogout = () => {
+    clearAuth();
+    navigate("/login");
   };
 
   // --- 1. SETUP DATA & SOCKET ---
@@ -142,17 +142,21 @@ const WaiterDashboard = () => {
 
   // B. Hủy món lẻ
   const handleRejectItem = async (orderId, itemId) => {
-    const reason = window.prompt(
-      "Lý do hủy món này? (VD: Hết hàng, Khách đổi ý)",
-    );
-    if (reason === null) return;
+    setRejectTarget({ orderId, itemId });
+  };
+
+  const confirmRejectItem = async (reason) => {
+    if (!rejectTarget) return;
+    const { orderId, itemId } = rejectTarget;
+    const rejectReason = reason.trim() || "Không có lý do";
+    setRejectTarget(null);
 
     setOrders((prev) =>
       prev.map((o) => {
         if (String(o.id) === String(orderId)) {
           const updatedItems = o.items.map((i) =>
             String(i.id) === String(itemId)
-              ? { ...i, status: "cancelled", reject_reason: reason }
+              ? { ...i, status: "cancelled", reject_reason: rejectReason }
               : i,
           );
           return { ...o, items: updatedItems };
@@ -162,9 +166,9 @@ const WaiterDashboard = () => {
     );
 
     try {
-      await waiterService.rejectOrderItem(itemId, reason);
+      await waiterService.rejectOrderItem(itemId, rejectReason);
     } catch (err) {
-      alert("Lỗi: " + err.message);
+      setNotification({ type: "error", text: `Lỗi: ${err.message}` });
     }
   };
 
@@ -181,25 +185,29 @@ const WaiterDashboard = () => {
     try {
       await waiterService.confirmBill(orderId, billData);
       setIsBillModalOpen(false);
-      // alert("Đã gửi hóa đơn cho khách!"); // Có thể bỏ alert cho mượt
+      setNotification({ type: "success", text: "Đã gửi hóa đơn cho khách." });
     } catch (err) {
-      alert("Lỗi: " + err.message);
+      setNotification({ type: "error", text: `Lỗi: ${err.message}` });
     }
   };
 
   // Bước 3: Xác nhận Thu tiền mặt (Khi status = payment_pending)
   const handleConfirmCashPayment = async (orderId) => {
-    if (!window.confirm("Xác nhận đã thu đủ tiền mặt từ khách?")) return;
+    setCashPaymentOrderId(orderId);
+  };
 
+  const confirmCashPayment = async () => {
+    if (!cashPaymentOrderId) return;
+    const orderId = cashPaymentOrderId;
+    setCashPaymentOrderId(null);
     try {
       await waiterService.confirmCashPayment(orderId);
-      // Ẩn đơn hàng sau 1s
       setTimeout(
         () => setOrders((prev) => prev.filter((o) => o.id !== orderId)),
         1000,
       );
     } catch (err) {
-      alert("Lỗi: " + err.message);
+      setNotification({ type: "error", text: `Lỗi: ${err.message}` });
     }
   };
 
@@ -250,309 +258,36 @@ const WaiterDashboard = () => {
   // --- 5. RENDER ---
   return (
     <div className="min-h-screen bg-gray-50 font-sans p-6">
-      {/* HEADER */}
-      <header className="flex justify-between items-center mb-8 bg-white p-4 rounded-xl shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="bg-blue-600 p-2 rounded-lg text-white">
-            <Utensils size={24} />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800">
-              Màn hình phục vụ
-            </h1>
-            <p className="text-gray-500 text-sm">
-              {currentTime.toLocaleTimeString("vi-VN", {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="flex gap-2">
-            {["all", "pending", "payment"].map((f) => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  filter === f
-                    ? "bg-blue-600 text-white shadow-md"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                }`}
-              >
-                {f === "all"
-                  ? "Tất cả"
-                  : f === "pending"
-                    ? "Cần duyệt"
-                    : "Thanh toán"}
-              </button>
-            ))}
-          </div>
-          <div className="h-8 w-px bg-gray-200"></div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 text-red-600 hover:bg-red-50 px-3 py-2 rounded-lg transition-all font-medium text-sm"
-          >
-            <LogOut size={18} /> Đăng xuất
-          </button>
-        </div>
-      </header>
+      {notification && (
+        <Alert
+          type={notification.type}
+          message={notification.text}
+          onClose={() => setNotification(null)}
+        />
+      )}
+
+      <WaiterHeader
+        currentTime={currentTime}
+        filter={filter}
+        onFilterChange={setFilter}
+        onLogout={handleLogout}
+      />
 
       {/* GRID */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredOrders.map((order) => {
-          const orderId = order.id;
-          const pendingItems =
-            order.items?.filter((i) => i.status === "pending") || [];
-          const readyItems =
-            order.items?.filter((i) => i.status === "ready") || [];
-
-          // Check Status Mới
-          const isPaymentRequest = order.status === "payment_request";
-          const isPaymentPending = order.status === "payment_pending";
-          const hasNewRequest = pendingItems.length > 0;
-          const hasReadyToServe = readyItems.length > 0;
-
-          // Border color logic
-          let borderClass = "border-gray-200";
-          if (isPaymentRequest)
-            borderClass =
-              "border-purple-500 border-2 shadow-purple-100 ring-2 ring-purple-100";
-          else if (isPaymentPending)
-            borderClass = "border-orange-500 border-2 shadow-orange-100";
-          else if (hasNewRequest)
-            borderClass =
-              "border-red-500 border-2 shadow-red-100 ring-2 ring-red-100";
-          else if (hasReadyToServe)
-            borderClass = "border-green-500 border-2 shadow-green-100";
-          else if (order.status === "pending")
-            borderClass = "border-yellow-500 border-l-4";
-
-          return (
-            <div
-              key={orderId}
-              className={`bg-white rounded-xl shadow-sm overflow-hidden flex flex-col transition-all ${borderClass}`}
-            >
-              {/* CARD HEADER */}
-              <div
-                className={`p-3 flex justify-between items-center ${
-                  isPaymentRequest
-                    ? "bg-purple-50"
-                    : isPaymentPending
-                      ? "bg-orange-50"
-                      : hasNewRequest
-                        ? "bg-red-50"
-                        : hasReadyToServe
-                          ? "bg-green-50"
-                          : "bg-gray-50"
-                }`}
-              >
-                <div className="flex flex-col">
-                  <h3 className="font-bold text-lg text-gray-800">
-                    Bàn {order.table?.table_number || "Không rõ"}
-                  </h3>
-                  <span className="text-[10px] text-gray-500 flex items-center gap-1">
-                    <Clock size={10} /> {getMinutesWaiting(order.created_at)}{" "}
-                    phút
-                  </span>
-                </div>
-
-                {/* Badges */}
-                {hasNewRequest && (
-                  <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded-full animate-pulse flex gap-1">
-                    <Bell size={10} /> MỚI
-                  </span>
-                )}
-                {!hasNewRequest && hasReadyToServe && (
-                  <span className="bg-green-600 text-white text-[10px] font-bold px-2 py-1 rounded-full animate-bounce flex gap-1">
-                    <CheckCircle size={10} /> XONG
-                  </span>
-                )}
-                {isPaymentRequest && (
-                  <span className="bg-purple-600 text-white text-[10px] font-bold px-2 py-1 rounded animate-pulse">
-                    CẦN T.TOÁN
-                  </span>
-                )}
-                {isPaymentPending && (
-                  <span className="bg-orange-600 text-white text-[10px] font-bold px-2 py-1 rounded">
-                    CHỜ THU TIỀN
-                  </span>
-                )}
-              </div>
-
-              {/* CARD BODY (LIST MÓN) */}
-              <div className="p-4 space-y-4 max-h-80 overflow-y-auto flex-1">
-                {/* Phần Render món giữ nguyên như code cũ của bạn vì nó tốt rồi */}
-                {pendingItems.length > 0 && (
-                  <div className="bg-red-50 border border-red-100 rounded-lg p-2">
-                    <p className="text-[10px] text-red-600 font-bold mb-2 uppercase border-b border-red-200 pb-1">
-                      Cần xác nhận ({pendingItems.length})
-                    </p>
-                    {pendingItems.map((item, idx) => (
-                      <div
-                        key={idx}
-                        className="mb-2 last:mb-0 flex justify-between items-start border-b border-red-100 pb-2 last:border-0 last:pb-0"
-                      >
-                        <div>
-                          <span className="font-bold text-gray-900 text-sm">
-                            {item.quantity}x {item.menu_item?.name}
-                          </span>
-                          {item.modifiers?.length > 0 && (
-                            <span className="text-[10px] text-gray-500 italic pl-1">
-                              {" "}
-                              +{" "}
-                              {item.modifiers
-                                .map((m) => m.modifier_option?.name)
-                                .join(", ")}
-                            </span>
-                          )}
-                          {item.notes && (
-                            <span className="text-[10px] text-orange-600 pl-1">
-                              {" "}
-                              "{item.notes}"
-                            </span>
-                          )}
-                        </div>
-                        <button
-                          onClick={() => handleRejectItem(orderId, item.id)}
-                          className="text-red-400 hover:text-red-700 p-1"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* List món đang phục vụ */}
-                {order.items?.filter((i) => i.status !== "pending").length >
-                  0 && (
-                  <div className="mt-2">
-                    {order.items
-                      .filter((i) => i.status !== "pending")
-                      .map((item, idx) => (
-                        <div
-                          key={idx}
-                          className={`flex justify-between items-center mb-2 pb-1 border-b border-gray-50 last:border-0 ${item.status === "cancelled" ? "opacity-50" : ""}`}
-                        >
-                          <div className="flex flex-col">
-                            <span
-                              className={`text-sm font-medium ${item.status === "cancelled" ? "line-through" : ""}`}
-                            >
-                              {item.quantity}x {item.menu_item?.name}
-                            </span>
-
-                            {item.modifiers?.length > 0 && (
-                              <span className="text-[10px] text-gray-500 italic pl-1">
-                                +{" "}
-                                {item.modifiers
-                                  .map((m) => m.modifier_option?.name)
-                                  .join(", ")}
-                              </span>
-                            )}
-
-                            {item.notes && (
-                              <span className="text-[10px] text-orange-600 pl-1 font-medium">
-                                📝 "{item.notes}"
-                              </span>
-                            )}
-                            <div className="flex flex-wrap gap-1">
-                              <span className="text-[9px] bg-gray-100 px-1 rounded text-gray-500">
-                                {getStatusLabel(item.status)}
-                              </span>
-                              {item.status === "cancelled" && (
-                                <span className="text-[9px] text-red-500">
-                                  {item.reject_reason}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                )}
-              </div>
-
-              {/* CARD FOOTER (NÚT BẤM QUAN TRỌNG) */}
-              <div className="p-3 bg-gray-50 border-t border-gray-100 mt-auto">
-                <div className="flex justify-between items-center mb-3">
-                  <span className="text-gray-500 text-xs">Tổng tạm tính</span>
-                  <span className="text-lg font-bold text-gray-900">
-                    {formatCurrency(order.total_amount)}
-                  </span>
-                </div>
-
-                {/* LOGIC HIỂN THỊ NÚT */}
-                {hasNewRequest ? (
-                  <button
-                    onClick={() => handleUpdateStatus(orderId, "confirmed")}
-                    className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded-lg shadow-md transition-all active:scale-95 flex justify-center items-center gap-2"
-                  >
-                    <CheckCircle size={16} /> Duyệt {pendingItems.length} món
-                    mới
-                  </button>
-                ) : hasReadyToServe ? (
-                  <button
-                    onClick={() => handleUpdateStatus(orderId, "served")}
-                    className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-lg shadow-md transition-all active:scale-95 flex justify-center items-center gap-2 animate-pulse"
-                  >
-                    <Utensils size={16} /> Bưng {readyItems.length} món xong
-                  </button>
-                ) : isPaymentRequest ? (
-                  // NÚT LẬP HÓA ĐƠN (Cho bước 1)
-                  <button
-                    onClick={() => handleOpenBillModal(order)}
-                    className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 rounded-lg shadow-md transition-all active:scale-95 flex justify-center items-center gap-2 animate-bounce-slow"
-                  >
-                    <DollarSign size={16} /> Lập Hóa Đơn
-                  </button>
-                ) : isPaymentPending ? (
-                  // NÚT THANH TOÁN - Hiển thị theo payment_method
-                  <div className="space-y-2">
-                    {!order.payment_method ? (
-                      // Chưa chọn phương thức
-                      <div className="text-center text-xs text-purple-600 font-bold bg-purple-100 p-2 rounded animate-pulse">
-                        Đang chờ khách chọn phương thức thanh toán...
-                      </div>
-                    ) : order.payment_method === "cash" ? (
-                      // Khách chọn tiền mặt
-                      <>
-                        <div className="text-center text-xs text-green-600 font-bold bg-green-100 p-1 rounded">
-                          Khách chọn: Tiền mặt 💵
-                        </div>
-                        <button
-                          onClick={() => handleConfirmCashPayment(orderId)}
-                          className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-lg shadow-md transition-all active:scale-95 flex justify-center items-center gap-2"
-                        >
-                          <CreditCard size={16} /> Thu tiền mặt
-                        </button>
-                      </>
-                    ) : order.payment_method === "momo" ? (
-                      // Khách chọn MoMo
-                      <div className="text-center text-xs text-pink-600 font-bold bg-pink-100 p-2 rounded">
-                        Đang chờ khách thanh toán MoMo 🟣
-                      </div>
-                    ) : order.payment_method === "vnpay" ? (
-                      // Khách chọn VNPay
-                      <div className="text-center text-xs text-blue-600 font-bold bg-blue-100 p-2 rounded">
-                        Đang chờ khách thanh toán VNPay 🔵
-                      </div>
-                    ) : (
-                      // Phương thức khác
-                      <div className="text-center text-xs text-gray-600 font-bold bg-gray-100 p-2 rounded">
-                        Đang chờ thanh toán ({order.payment_method})...
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <span className="text-center block text-xs text-gray-400">
-                    Đang phục vụ...
-                  </span>
-                )}
-              </div>
-            </div>
-          );
-        })}
+        {filteredOrders.map((order) => (
+          <WaiterOrderCard
+            key={order.id}
+            formatCurrency={formatCurrency}
+            getMinutesWaiting={getMinutesWaiting}
+            getStatusLabel={getStatusLabel}
+            onConfirmCashPayment={handleConfirmCashPayment}
+            onOpenBillModal={handleOpenBillModal}
+            onRejectItem={handleRejectItem}
+            onUpdateStatus={handleUpdateStatus}
+            order={order}
+          />
+        ))}
       </div>
 
       {filteredOrders.length === 0 && (
@@ -568,6 +303,36 @@ const WaiterDashboard = () => {
         onClose={() => setIsBillModalOpen(false)}
         order={selectedOrderForBill}
         onConfirm={handleSendBill}
+      />
+
+      <ConfirmDialog
+        isOpen={logoutDialogOpen}
+        onClose={() => setLogoutDialogOpen(false)}
+        onConfirm={confirmLogout}
+        title="Xác nhận đăng xuất"
+        message="Bạn có chắc chắn muốn đăng xuất?"
+        confirmText="Đăng xuất"
+      />
+
+      <ConfirmDialog
+        isOpen={Boolean(cashPaymentOrderId)}
+        onClose={() => setCashPaymentOrderId(null)}
+        onConfirm={confirmCashPayment}
+        title="Xác nhận thanh toán"
+        message="Xác nhận đã thu đủ tiền mặt từ khách?"
+        confirmText="Đã thu tiền"
+        variant="info"
+      />
+
+      <PromptDialog
+        isOpen={Boolean(rejectTarget)}
+        onClose={() => setRejectTarget(null)}
+        onConfirm={confirmRejectItem}
+        title="Hủy món"
+        message="Nhập lý do hủy để bếp và phục vụ dễ theo dõi."
+        label="Lý do hủy"
+        placeholder="VD: Hết hàng, khách đổi ý..."
+        confirmText="Xác nhận hủy"
       />
     </div>
   );

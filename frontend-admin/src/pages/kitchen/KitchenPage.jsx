@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import ConfirmDialog from "../../components/common/ConfirmDialog";
 import OrderCard from "../../components/kitchen/OrderCard";
 import { OVERDUE_TIME, WARNING_TIME } from "../../constants/kitchenDisplay";
 import useKitchenOrders from "../../hooks/useKitchenOrders";
@@ -10,6 +11,7 @@ const KitchenPage = () => {
   const navigate = useNavigate();
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [filter, setFilter] = useState("all");
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const {
     error,
     handleReadyOrder,
@@ -49,10 +51,12 @@ const KitchenPage = () => {
   ];
 
   const handleLogout = () => {
-    if (window.confirm("Bạn có chắc chắn muốn đăng xuất?")) {
-      clearAuth();
-      navigate("/login");
-    }
+    setLogoutDialogOpen(true);
+  };
+
+  const confirmLogout = () => {
+    clearAuth();
+    navigate("/login");
   };
 
   if (loading) {
@@ -198,6 +202,15 @@ const KitchenPage = () => {
           </div>
         </div>
       </footer>
+
+      <ConfirmDialog
+        isOpen={logoutDialogOpen}
+        onClose={() => setLogoutDialogOpen(false)}
+        onConfirm={confirmLogout}
+        title="Xác nhận đăng xuất"
+        message="Bạn có chắc chắn muốn đăng xuất?"
+        confirmText="Đăng xuất"
+      />
     </div>
   );
 };

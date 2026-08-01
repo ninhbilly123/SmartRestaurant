@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { X, Printer, Send, Calculator } from "lucide-react";
+import { printBill } from "../../utils/billPrint";
 
 const BillConfirmModal = ({ isOpen, onClose, order, onConfirm }) => {
   // State quản lý các khoản tiền
@@ -73,62 +74,22 @@ const BillConfirmModal = ({ isOpen, onClose, order, onConfirm }) => {
     onClose();
   };
 
-  // Xử lý In hóa đơn
   const handlePrint = () => {
-    const printWindow = window.open('', '', 'height=600,width=400');
-    printWindow.document.write('<html><head><title>Hóa đơn</title>');
-    printWindow.document.write('<style>body{font-family: monospace; padding: 20px;} .line{display:flex;justify-content:space-between;margin-bottom:5px;} .bold{font-weight:bold;} hr{border-top: 1px dashed #000; margin: 10px 0;}</style>');
-    printWindow.document.write('</head><body>');
-    
-    // Header
-    printWindow.document.write('<div style="text-align:center"><h2>SMART RESTAURANT</h2><p>ĐC: 123 ABC, Thành phố XYZ</p></div>');
-    printWindow.document.write('<hr/>');
-    printWindow.document.write(`<div class="line"><span>Bàn:</span> <span class="bold">${order.table?.table_number}</span></div>`);
-    printWindow.document.write(`<div class="line"><span>Ngày:</span> <span>${new Date().toLocaleString('vi-VN')}</span></div>`);
-    printWindow.document.write('<hr/>');
-
-    // List món
-    order.items.forEach(item => {
-        if(item.status !== 'cancelled') {
-             const basePrice = parseFloat(item.menu_item?.price || 0);
-             const modifiersTotal = (item.modifiers || []).reduce((sum, mod) => {
-                 return sum + parseFloat(mod.price || mod.modifier_option?.price_adjustment || 0);
-             }, 0);
-             const itemTotal = (basePrice + modifiersTotal) * item.quantity;
-             
-             printWindow.document.write(`<div class="line"><span class="bold">${item.quantity}x ${item.menu_item?.name}</span> <span>${itemTotal.toLocaleString()}</span></div>`);
-             
-             // Hiển thị modifier
-             if (item.modifiers && item.modifiers.length > 0) {
-                 item.modifiers.forEach(mod => {
-                     const modPrice = parseFloat(mod.price || mod.modifier_option?.price_adjustment || 0);
-                     printWindow.document.write(`<div class="line" style="margin-left:20px;font-size:0.85em;color:#666"><span>+ ${mod.modifier_option?.name || mod.name}</span> <span>${modPrice > 0 ? '+' + modPrice.toLocaleString() : ''}</span></div>`);
-                 });
-             }
-             
-             // Hiển thị note
-             if (item.notes) {
-                 printWindow.document.write(`<div style="margin-left:20px;font-size:0.8em;font-style:italic;color:#f97316">Ghi chú: ${item.notes}</div>`);
-             }
-        }
-    });
-    
-    // Footer Tiền
-    printWindow.document.write('<hr/>');
-    printWindow.document.write(`<div class="line"><span>Tạm tính:</span> <span>${subtotal.toLocaleString()}</span></div>`);
-    if(discountAmount > 0) printWindow.document.write(`<div class="line"><span>Giảm giá (${discountType === 'percent' ? discountValue + '%' : 'Số tiền'}):</span> <span>-${discountAmount.toLocaleString()}</span></div>`);
-    if(taxAmount > 0) printWindow.document.write(`<div class="line"><span>Thuế (${taxPercent}%):</span> <span>+${taxAmount.toLocaleString()}</span></div>`);
-    
-    printWindow.document.write('<hr/>');
-    printWindow.document.write(`<div class="line" style="font-size: 1.2em"><span class="bold">TỔNG CỘNG:</span> <span class="bold">${finalTotal.toLocaleString()} đ</span></div>`);
-    
-    // Note
-    if(note) printWindow.document.write(`<br/><div style="font-style:italic; font-size:0.8em">Ghi chú: ${note}</div>`);
-
-    printWindow.document.write('<br/><div style="text-align:center">Cảm ơn quý khách!</div>');
-    printWindow.document.write('</body></html>');
-    printWindow.document.close();
-    printWindow.print();
+    try {
+      printBill({
+        discountAmount,
+        discountType,
+        discountValue,
+        finalTotal,
+        note,
+        order,
+        subtotal,
+        taxAmount,
+        taxPercent,
+      });
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   return (

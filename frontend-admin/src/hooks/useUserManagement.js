@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import {
-  createNewUser,
+  createUser,
   getAllUsers,
   toggleUserStatus,
   updateUser,
-} from "../services/authService";
+} from "../services/userService";
 
 const useUserManagement = ({
   defaultFormData,
@@ -17,6 +17,8 @@ const useUserManagement = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState(defaultFormData);
+  const [message, setMessage] = useState(null);
+  const [pendingStatusUser, setPendingStatusUser] = useState(null);
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -29,6 +31,8 @@ const useUserManagement = ({
       setLoading(false);
     }
   }, [filterUsers]);
+
+  const clearMessage = useCallback(() => setMessage(null), []);
 
   useEffect(() => {
     fetchUsers();
@@ -73,55 +77,73 @@ const useUserManagement = ({
   const handleSubmit = useCallback(
     async (e) => {
       e.preventDefault();
+      setMessage(null);
       try {
         if (isEditing) {
           await updateUser(editingId, formData);
-          alert(labels.updateSuccess);
+          setMessage({ type: "success", text: labels.updateSuccess });
         } else {
-          await createNewUser(formData);
-          alert(labels.createSuccess);
+          await createUser(formData);
+          setMessage({ type: "success", text: labels.createSuccess });
         }
 
         resetForm();
         fetchUsers();
       } catch (err) {
-        alert(err.message || labels.error);
+        setMessage({ type: "error", text: err.message || labels.error });
       }
     },
     [editingId, fetchUsers, formData, isEditing, labels, resetForm],
   );
 
-  const handleToggleStatus = useCallback(
+  const requestToggleStatus = useCallback((user) => {
+    setPendingStatusUser(user);
+  }, []);
+
+  const closeToggleDialog = useCallback(() => {
+    setPendingStatusUser(null);
+  }, []);
+
+  const confirmToggleStatus = useCallback(
     async (user) => {
-      const action = user.is_active ? "KHÓA" : "MỞ KHÓA";
-      const displayName = user.full_name || user.username;
-
-      if (!window.confirm(`${labels.toggleConfirmPrefix} ${action} ${displayName}?`)) {
-        return;
-      }
-
+      if (!user) return;
+      setMessage(null);
       try {
         await toggleUserStatus(user.id, !user.is_active);
         fetchUsers();
       } catch (err) {
-        alert(`${labels.toggleError}: ${err.message}`);
+        setMessage({ type: "error", text: `${labels.toggleError}: ${err.message}` });
+      } finally {
+        closeToggleDialog();
       }
     },
-    [fetchUsers, labels],
+    [closeToggleDialog, fetchUsers, labels],
   );
 
+  const pendingAction = pendingStatusUser?.is_active ? "KHÓA" : "MỞ KHÓA";
+  const pendingDisplayName =
+    pendingStatusUser?.full_name || pendingStatusUser?.username || "";
+
   return {
+    clearMessage,
+    closeToggleDialog,
+    confirmToggleStatus,
     formData,
     handleChange,
     handleEditClick,
     handleSubmit,
-    handleToggleStatus,
     isEditing,
     loading,
+    message,
+    pendingStatusUser,
+    requestToggleStatus,
     resetForm,
     setFormData,
     showForm,
     toggleForm,
+    toggleDialogMessage: pendingStatusUser
+      ? `${labels.toggleConfirmPrefix} ${pendingAction} ${pendingDisplayName}?`
+      : "",
     users,
   };
 };
