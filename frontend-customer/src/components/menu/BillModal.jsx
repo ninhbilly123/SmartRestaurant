@@ -233,7 +233,6 @@ const BillModal = ({ isOpen, onClose, order, onRequestPayment }) => {
                   0,
                 );
 
-                console.log(item);
                 return (
                   <div key={idx} className="flex justify-between text-sm">
                     <div>

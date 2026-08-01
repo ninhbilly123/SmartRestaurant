@@ -7,14 +7,7 @@ const API_HOST = (import.meta.env.VITE_API_BASE_URL || "http://localhost:5000")
 
 const API_BASE_URL = `${API_HOST}/api`;
 
-const adminApi = axios.create({
-  baseURL: `${API_BASE_URL}/admin`,
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
-
-const publicApi = axios.create({
+const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
@@ -56,8 +49,7 @@ const setupInterceptors = (instance) => {
   );
 };
 
-setupInterceptors(adminApi);
-setupInterceptors(publicApi);
+setupInterceptors(apiClient);
 setupInterceptors(customerApi);
 
 customerApi.interceptors.request.use(
@@ -73,4 +65,4 @@ customerApi.interceptors.request.use(
   }
 );
 
-export { adminApi, publicApi, customerApi };
+export { apiClient, customerApi };

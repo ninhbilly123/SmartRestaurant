@@ -55,9 +55,6 @@ const SocialLoginButtons = ({
         redirectTo += `?${params.toString()}`;
       }
 
-      console.log("[SOCIAL LOGIN] Final redirect URL for Supabase:", redirectTo);
-      console.log("[SOCIAL LOGIN] Will redirect to after callback:", from || '/menu');
-      
       // Gọi Supabase với redirect URL đầy đủ
       const result = await supabaseAuthService.signInWithGoogle(redirectTo);
       

@@ -356,55 +356,6 @@ const VerifyEmailPage = () => {
 						</button>
 					</div>
 
-					{/* Debug info (chỉ hiển thị trong development) */}
-					{import.meta.env.DEV && (
-						<div className="mt-6 p-4 bg-gray-100 rounded-lg border border-gray-300">
-							<details className="cursor-pointer">
-								<summary className="font-bold text-sm text-gray-700">Debug Info</summary>
-								<div className="mt-2 text-xs">
-									<pre className="whitespace-pre-wrap break-words">
-										{JSON.stringify({
-											customerId: customerId ? `${customerId.substring(0, 8)}...` : "MISSING",
-											email: email || "MISSING",
-											username: username || "MISSING",
-											otp: otp.join(""),
-											otpLength: otp.join("").length,
-											timer: timer,
-											canResend: canResend,
-											from: from
-										}, null, 2)}
-									</pre>
-									
-									<div className="mt-3 space-x-2">
-										<button 
-											onClick={() => {
-												// Test với OTP giả
-												setOtp(["1", "2", "3", "4", "5", "6"]);
-											}}
-											className="px-3 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200"
-										>
-											Fill Test OTP: 123456
-										</button>
-										
-										<button 
-											onClick={() => {
-												console.log("📊 STATE DUMP:", {
-													customerId,
-													email,
-													username,
-													otp,
-													locationState: location.state
-												});
-											}}
-											className="px-3 py-1 bg-purple-100 text-purple-700 rounded text-xs hover:bg-purple-200"
-										>
-											Log State to Console
-										</button>
-									</div>
-								</div>
-							</details>
-						</div>
-					)}
 				</div>
 			</div>
 		</div>

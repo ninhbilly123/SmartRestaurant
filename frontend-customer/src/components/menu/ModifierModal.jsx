@@ -4,6 +4,7 @@ const ModifierModalContent = ({ item, onClose, onAddToCart }) => {
   const [selectedModifiers, setSelectedModifiers] = useState({});
   const [quantity, setQuantity] = useState(1);
   const [note, setNote] = useState("");
+  const [validationError, setValidationError] = useState("");
 
   const modifierGroups = item.modifierGroups || [];
 
@@ -104,7 +105,7 @@ const ModifierModalContent = ({ item, onClose, onAddToCart }) => {
 
   const handleAddToCart = () => {
     if (!validateRequiredModifiers()) {
-      alert("Please select required modifiers");
+      setValidationError("Vui lòng chọn đầy đủ tùy chọn bắt buộc");
       return;
     }
 
@@ -169,7 +170,7 @@ const ModifierModalContent = ({ item, onClose, onAddToCart }) => {
                   <h3 className="font-semibold text-gray-900">{group.name}</h3>
                   {group.is_required && (
                     <span className="text-xs px-2 py-1 bg-red-100 text-red-700 rounded-full">
-                      Required
+                      Bắt buộc
                     </span>
                   )}
                 </div>
@@ -243,7 +244,7 @@ const ModifierModalContent = ({ item, onClose, onAddToCart }) => {
           {/* Special instructions */}
           <div className="mb-4">
             <label className="block font-medium text-gray-900 mb-2">
-              📝 Special Instructions (optional)
+              Ghi chú đặc biệt (tùy chọn)
             </label>
             <textarea
               value={note}
@@ -281,6 +282,12 @@ const ModifierModalContent = ({ item, onClose, onAddToCart }) => {
           </div>
 
           {/* Add to cart button */}
+          {validationError && (
+            <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {validationError}
+            </div>
+          )}
+
           <button
             onClick={handleAddToCart}
             className="w-full py-3 bg-amber-600 text-white font-medium rounded-lg hover:bg-amber-700 transition-colors flex items-center justify-center gap-2"

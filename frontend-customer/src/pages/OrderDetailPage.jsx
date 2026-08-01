@@ -46,9 +46,6 @@ const OrderDetailPage = () => {
         setLoading(true);
         // Gọi API (Backend đã update service include table + modifiers)
         const apiResponse = await CustomerService.getOrderById(orderId);
-        
-        // Log để kiểm tra (có thể xóa sau này)
-        console.log("🔍 API Response:", apiResponse);
 
         // Xử lý data an toàn (phòng trường hợp axios bọc data)
         const actualOrder = apiResponse.data || apiResponse;

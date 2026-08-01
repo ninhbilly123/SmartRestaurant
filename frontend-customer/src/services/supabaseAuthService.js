@@ -4,9 +4,6 @@ class SupabaseAuthService {
   // Đăng nhập Google
   async signInWithGoogle(redirectTo) {
     try {
-      console.log("[SUPABASE] Sign in with Google");
-      console.log("[SUPABASE] Redirect URL provided:", redirectTo);
-      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {

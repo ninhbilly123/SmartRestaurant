@@ -14,6 +14,7 @@ import {
   Check,
   MessageSquare,
 } from "lucide-react";
+import Swal from "sweetalert2";
 import customerService from "../../services/customerService";
 
 const OrderDetailModal = ({ order, onClose, onRequestBill }) => {
@@ -24,6 +25,7 @@ const OrderDetailModal = ({ order, onClose, onRequestBill }) => {
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [reviewMessage, setReviewMessage] = useState(null);
 
   // State check reviewable
   const [reviewableItemIds, setReviewableItemIds] = useState(new Set());
@@ -66,10 +68,12 @@ const OrderDetailModal = ({ order, onClose, onRequestBill }) => {
     setReviewingItem(item);
     setRating(5);
     setComment("");
+    setReviewMessage(null);
   };
 
   const handleCloseReview = () => {
     setReviewingItem(null);
+    setReviewMessage(null);
   };
 
   const handleSubmitReview = async (e) => {
@@ -95,10 +99,18 @@ const OrderDetailModal = ({ order, onClose, onRequestBill }) => {
         return newSet;
       });
 
-      alert("Cảm ơn đánh giá của bạn!");
+      await Swal.fire({
+        icon: "success",
+        title: "Cảm ơn đánh giá của bạn!",
+        confirmButtonText: "Đóng",
+        confirmButtonColor: "#ea580c",
+      });
       handleCloseReview();
     } catch (error) {
-      alert(error.message || "Không thể gửi đánh giá, vui lòng thử lại.");
+      setReviewMessage({
+        type: "error",
+        text: error.message || "Không thể gửi đánh giá, vui lòng thử lại.",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -259,6 +271,17 @@ const OrderDetailModal = ({ order, onClose, onRequestBill }) => {
                 </div>
               </div>
               <form onSubmit={handleSubmitReview}>
+                {reviewMessage && (
+                  <div
+                    className={`mb-4 rounded-xl border px-4 py-3 text-sm font-medium ${
+                      reviewMessage.type === "success"
+                        ? "border-green-200 bg-green-50 text-green-700"
+                        : "border-red-200 bg-red-50 text-red-700"
+                    }`}
+                  >
+                    {reviewMessage.text}
+                  </div>
+                )}
                 <div className="flex flex-col items-center gap-2 mb-8">
                   <div className="flex justify-center gap-2">
                     {[1, 2, 3, 4, 5].map((star) => (

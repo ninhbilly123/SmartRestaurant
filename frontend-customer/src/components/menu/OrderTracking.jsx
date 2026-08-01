@@ -43,7 +43,6 @@ const OrderTracking = ({ orderId, onOrderMore, tableId }) => {
 
     // Lắng nghe sự kiện update từ server (tên event phải khớp với Backend)
     socketRef.current.on(`order_update_${orderId}`, (updatedOrder) => {
-      console.log("Order updated:", updatedOrder);
       setOrder(updatedOrder);
     });
 

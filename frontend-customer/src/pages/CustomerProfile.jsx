@@ -1,346 +1,39 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import CustomerService from "../services/customerService";
-import { toast } from "react-toastify";
-import { getAuthMethod, setCustomerInfo } from "../utils/customerAuth";
+﻿import React from "react";
+import useCustomerProfile from "../hooks/useCustomerProfile";
 
 const CustomerProfile = () => {
-  const [customer, setCustomer] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editData, setEditData] = useState({});
-  const [saving, setSaving] = useState(false);
-  const [showChangePassword, setShowChangePassword] = useState(false);
-  const [passwordData, setPasswordData] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: ""
-  });
-  const [changingPassword, setChangingPassword] = useState(false);
-  const [passwordErrors, setPasswordErrors] = useState({});
-  const [authMethod, setAuthMethod] = useState(null);
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const [deletingAvatar, setDeletingAvatar] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const fileInputRef = useRef(null);
-  
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  const getFromPath = () => {
-    if (location.state?.from) return location.state.from;
-
-    const searchParams = new URLSearchParams(location.search);
-    const tableId = searchParams.get('table');
-    const token = searchParams.get('token');
-    
-    if (tableId) {
-      let path = `/menu?table=${tableId}`;
-      if (token) path += `&token=${token}`;
-      return path;
-    }
-    return "/menu";
-  };
-
-  const fromPath = getFromPath();
-
-  useEffect(() => {
-    if (customer) {
-      setEditData({
-        username: customer.username || "",
-        phone: customer.phone || "",
-      });
-    }
-  }, [customer]);
-
-  const fetchProfile = useCallback(async () => {
-    try {
-      setLoading(true);
-      if (!CustomerService.isLoggedIn()) {
-        navigate("/customer/login", { state: { from: fromPath } });
-        return;
-      }
-      const data = CustomerService.getCurrentCustomer();
-      setCustomer(data);
-    } catch (err) {
-      console.error("Lỗi tải hồ sơ:", err);
-      toast.error("Không thể tải thông tin hồ sơ");
-    } finally {
-      setLoading(false);
-    }
-  }, [fromPath, navigate]);
-
-  useEffect(() => {
-    fetchProfile();
-    const method = getAuthMethod();
-    setAuthMethod(method);
-  }, [fetchProfile]);
-
-  // Hàm lấy chữ cái đầu cho avatar
-  const getInitial = () => {
-    if (!customer) return "U";
-    if (customer.username) {
-      return customer.username.charAt(0).toUpperCase();
-    }
-    if (customer.full_name) {
-      return customer.full_name.charAt(0).toUpperCase();
-    }
-    if (customer.email) {
-      return customer.email.charAt(0).toUpperCase();
-    }
-    return "U";
-  };
-
-  // Xử lý click vào avatar để upload
-  const handleAvatarClick = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
-  };
-
-  // Xử lý chọn file avatar
-  const handleAvatarChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    // Validate file
-    if (!file.type.startsWith('image/')) {
-      toast.error("Vui lòng chọn file ảnh");
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) { // 5MB
-      toast.error("File ảnh không được vượt quá 5MB");
-      return;
-    }
-
-    try {
-      setUploadingAvatar(true);
-      
-      // Gọi API upload avatar
-      const response = await CustomerService.updateAvatar(file);
-      
-      if (response.success) {
-        // Cập nhật avatar trong state và auth storage
-        const updatedCustomer = {
-          ...customer,
-          avatar: response.data?.avatar || response.avatar || response.data?.customer?.avatar
-        };
-        
-        setCustomerInfo(updatedCustomer);
-        setCustomer(updatedCustomer);
-        
-        toast.success("Cập nhật ảnh đại diện thành công");
-      } else {
-        toast.error(response.error || "Không thể cập nhật ảnh đại diện");
-      }
-    } catch (error) {
-      console.error("Lỗi upload avatar:", error);
-      toast.error(error.message || "Có lỗi xảy ra khi upload ảnh");
-    } finally {
-      setUploadingAvatar(false);
-      // Reset file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
-  };
-
-  // Xử lý xóa avatar
-  const handleDeleteAvatar = async () => {
-    try {
-      setDeletingAvatar(true);
-      
-      // Gọi API xóa avatar
-      const response = await CustomerService.deleteAvatar();
-      
-      if (response.success) {
-        // Cập nhật state và auth storage
-        const updatedCustomer = {
-          ...customer,
-          avatar: null
-        };
-        
-        setCustomerInfo(updatedCustomer);
-        setCustomer(updatedCustomer);
-        
-        setShowDeleteConfirm(false);
-        toast.success("Đã xóa ảnh đại diện");
-      } else {
-        toast.error(response.error || "Không thể xóa ảnh đại diện");
-      }
-    } catch (error) {
-      console.error("Lỗi xóa avatar:", error);
-      toast.error(error.message || "Có lỗi xảy ra khi xóa ảnh");
-    } finally {
-      setDeletingAvatar(false);
-    }
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setEditData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handlePasswordChange = (e) => {
-    const { name, value } = e.target;
-    setPasswordData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    // Clear error when user starts typing
-    if (passwordErrors[name]) {
-      setPasswordErrors(prev => ({
-        ...prev,
-        [name]: ""
-      }));
-    }
-  };
-
-  const validatePasswordForm = () => {
-    const errors = {};
-    
-    if (!passwordData.currentPassword.trim()) {
-      errors.currentPassword = "Vui lòng nhập mật khẩu hiện tại";
-    }
-    
-    if (!passwordData.newPassword.trim()) {
-      errors.newPassword = "Vui lòng nhập mật khẩu mới";
-    } else if (passwordData.newPassword.length < 6) {
-      errors.newPassword = "Mật khẩu mới phải có ít nhất 6 ký tự";
-    }
-    
-    if (!passwordData.confirmPassword.trim()) {
-      errors.confirmPassword = "Vui lòng xác nhận mật khẩu";
-    } else if (passwordData.newPassword !== passwordData.confirmPassword) {
-      errors.confirmPassword = "Mật khẩu xác nhận không khớp";
-    }
-    
-    if (passwordData.currentPassword === passwordData.newPassword) {
-      errors.newPassword = "Mật khẩu mới phải khác mật khẩu cũ";
-    }
-    
-    setPasswordErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  const handleChangePasswordSubmit = async () => {
-    if (authMethod === "google") {
-      toast.error("Tài khoản đăng nhập bằng Google không thể đổi mật khẩu");
-      return;
-    }
-
-    if (!validatePasswordForm()) {
-      return;
-    }
-
-    try {
-      setChangingPassword(true);
-      
-      const response = await CustomerService.changePassword(
-        passwordData.currentPassword,
-        passwordData.newPassword
-      );
-      
-      if (response.success) {
-        toast.success("Đổi mật khẩu thành công");
-        setShowChangePassword(false);
-        setPasswordData({
-          currentPassword: "",
-          newPassword: "",
-          confirmPassword: ""
-        });
-        setPasswordErrors({});
-      } else {
-        toast.error(response.error || "Đổi mật khẩu thất bại");
-      }
-    } catch (error) {
-      console.error("Lỗi đổi mật khẩu:", error);
-      toast.error(error.message || "Có lỗi xảy ra khi đổi mật khẩu");
-    } finally {
-      setChangingPassword(false);
-    }
-  };
-
-  const handleSave = async () => {
-    try {
-      setSaving(true);
-      
-      // Kiểm tra dữ liệu
-      if (editData.username && editData.username.length < 3) {
-        toast.error("Tên đăng nhập phải có ít nhất 3 ký tự");
-        return;
-      }
-      
-      if (editData.phone && editData.phone.length !== 10) {
-        toast.error("Số điện thoại phải có đúng 10 chữ số");
-        return;
-      }
-      
-      if (editData.phone && !/^[0-9]+$/.test(editData.phone)) {
-        toast.error("Số điện thoại chỉ được chứa chữ số");
-        return;
-      }
-
-      // Gọi API cập nhật
-      const response = await CustomerService.updateProfile(editData);
-      
-      if (response.success) {
-      // Cập nhật thông tin trong auth storage
-        const updatedCustomer = {
-          ...customer,
-          ...editData
-        };
-      setCustomerInfo(updatedCustomer);
-        setCustomer(updatedCustomer);
-        
-        setIsEditing(false);
-        toast.success("Cập nhật thông tin thành công");
-      } else {
-        toast.error(response.error || "Cập nhật thất bại");
-      }
-    } catch (error) {
-      console.error("Lỗi cập nhật:", error);
-      toast.error(error.message || "Có lỗi xảy ra khi cập nhật");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleCancel = () => {
-    setEditData({
-      username: customer?.username || "",
-      phone: customer?.phone || "",
-    });
-    setIsEditing(false);
-  };
-
-  const handlePasswordPopupClose = () => {
-    setShowChangePassword(false);
-    setPasswordData({
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: ""
-    });
-    setPasswordErrors({});
-  };
-
-  const handleShowChangePassword = () => {
-    if (authMethod === "google") {
-      toast.info("Tài khoản Google không cần đổi mật khẩu");
-      return;
-    }
-    setShowChangePassword(true);
-  };
-
-  const handleLogout = () => {
-    CustomerService.logout();
-    navigate("/customer/login", { state: { from: fromPath } });
-  };
-
+  const {
+    authMethod,
+    changingPassword,
+    customer,
+    deletingAvatar,
+    editData,
+    fileInputRef,
+    fromPath,
+    getInitial,
+    handleAvatarChange,
+    handleAvatarClick,
+    handleCancel,
+    handleChangePasswordSubmit,
+    handleDeleteAvatar,
+    handleInputChange,
+    handleLogout,
+    handlePasswordChange,
+    handlePasswordPopupClose,
+    handleSave,
+    handleShowChangePassword,
+    isEditing,
+    loading,
+    navigate,
+    passwordData,
+    passwordErrors,
+    saving,
+    setIsEditing,
+    setShowDeleteConfirm,
+    showChangePassword,
+    showDeleteConfirm,
+    uploadingAvatar,
+  } = useCustomerProfile();
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-white">
       <div className="animate-spin rounded-full h-10 w-10 border-4 border-gray-100 border-t-orange-500"></div>
@@ -1011,3 +704,4 @@ const CustomerProfile = () => {
 };
 
 export default CustomerProfile;
+

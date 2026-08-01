@@ -37,36 +37,13 @@ const CustomerLoginPage = () => {
 
   const from = getFromPath();
 
-  console.log("[LOGIN] 🏷️ from path:", from);
-
   useEffect(() => {
     // Kiểm tra nếu đã login với Supabase
     const checkAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
-          console.log("[LOGIN] ✅ Đã login với Supabase, đồng bộ với backend...");
-          
-          // Đồng bộ user với backend
-		  /*
-          const syncResult = await customerService.syncSupabaseUser({
-            supabase_id: session.user.id,
-            email: session.user.email,
-            username: session.user.email.split('@')[0],
-            full_name: session.user.user_metadata?.full_name || session.user.email.split('@')[0],
-            avatar_url: session.user.user_metadata?.avatar_url,
-            phone: session.user.phone,
-            metadata: session.user.user_metadata
-          });
-          
-          if (syncResult.success) {
-            console.log("[LOGIN] ✅ Đồng bộ thành công, redirect về:", from);
-            navigate(from, { replace: true });
-          } else {
-            console.log("[LOGIN] ❌ Đồng bộ thất bại:", syncResult.error);
-          }
-			*/
-			//navigate(from, { replace: true });
+          return;
         }
       } catch (err) {
         console.error("[LOGIN] Lỗi kiểm tra auth:", err);

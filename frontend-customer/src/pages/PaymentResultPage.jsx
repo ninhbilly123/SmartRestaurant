@@ -20,13 +20,6 @@ const PaymentResultPage = () => {
       const momoMessage = searchParams.get("message");
       const transId = searchParams.get("transId");
 
-      console.log("Payment result params:", {
-        orderId,
-        resultCode,
-        momoMessage,
-        transId,
-      });
-
       if (!orderId) {
         setStatus("failed");
         setMessage("Không tìm thấy thông tin đơn hàng");
@@ -46,12 +39,8 @@ const PaymentResultPage = () => {
             setStatus("success");
             setMessage("Thanh toán thành công!");
             setOrderInfo({ orderId, transId });
-          } catch (completeError) {
+          } catch {
             // Có thể order đã được hoàn tất bởi IPN callback
-            console.log(
-              "Complete payment error (có thể đã được xử lý):",
-              completeError
-            );
             setStatus("success");
             setMessage("Thanh toán đã được xử lý!");
             setOrderInfo({ orderId, transId });
@@ -66,8 +55,6 @@ const PaymentResultPage = () => {
             const statusResult = await CustomerService.checkMomoPaymentStatus(
               orderId
             );
-            console.log("Check status result:", statusResult);
-
             if (statusResult.resultCode === 0) {
               setStatus("success");
               setMessage("Thanh toán thành công!");
