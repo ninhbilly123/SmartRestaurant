@@ -1,92 +1,43 @@
-import React, { useState, useEffect } from "react";
-import { getAllUsers, createNewUser, updateUser, toggleUserStatus } from "../../services/authService"; 
+import React, { useCallback } from "react";
 import { Edit, Lock, Unlock, UserPlus, Save, X, ChefHat, Coffee } from "lucide-react";
+import {
+  EMPLOYEE_DEFAULT_FORM,
+  EMPLOYEE_ROLES,
+  getRoleLabel,
+} from "../../constants/roles";
+import useUserManagement from "../../hooks/useUserManagement";
+
+const EMPLOYEE_FORM_LABELS = {
+  createSuccess: "Tạo nhân viên mới thành công!",
+  updateSuccess: "Cập nhật nhân viên thành công!",
+  error: "Lỗi xử lý",
+  toggleConfirmPrefix: "Bạn muốn",
+  toggleError: "Lỗi",
+};
 
 const EmployeeManagement = () => {
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [showForm, setShowForm] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editingId, setEditingId] = useState(null);
+  const filterEmployees = useCallback(
+    (users) => users.filter((user) => EMPLOYEE_ROLES.includes(user.role)),
+    [],
+  );
 
-  const [formData, setFormData] = useState({
-    username: "",
-    password: "",
-    full_name: "",
-    role: "waiter",
+  const {
+    formData,
+    handleChange,
+    handleEditClick,
+    handleSubmit,
+    handleToggleStatus,
+    isEditing,
+    loading,
+    resetForm,
+    showForm,
+    toggleForm,
+    users,
+  } = useUserManagement({
+    defaultFormData: EMPLOYEE_DEFAULT_FORM,
+    filterUsers: filterEmployees,
+    labels: EMPLOYEE_FORM_LABELS,
   });
-
-  const getRoleLabel = (role) => {
-    const labels = {
-      waiter: "Phục vụ",
-      kitchen: "Bếp",
-    };
-    return labels[role] || role;
-  };
-
-  const fetchEmployees = async () => {
-    try {
-      setLoading(true);
-      const data = await getAllUsers();
-      setUsers(data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchEmployees(); 
-  }, []);
-
-  const resetForm = () => {
-    setFormData({ username: "", password: "", full_name: "", role: "waiter" });
-    setIsEditing(false);
-    setEditingId(null);
-    setShowForm(false);
-  };
-
-  const handleEditClick = (user) => {
-    setFormData({
-      username: user.username,
-      password: "",
-      full_name: user.full_name,
-      role: user.role,
-    });
-    setEditingId(user.id);
-    setIsEditing(true);
-    setShowForm(true);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      if (isEditing) {
-        await updateUser(editingId, formData);
-        alert("Cập nhật nhân viên thành công!");
-      } else {
-        await createNewUser(formData);
-        alert("Tạo nhân viên mới thành công!");
-      }
-      resetForm();
-      fetchEmployees();
-    } catch (err) {
-      alert(err.message || "Lỗi xử lý");
-    }
-  };
-
-  const handleToggleStatus = async (user) => {
-    const action = user.is_active ? "KHÓA" : "MỞ KHÓA";
-    if (window.confirm(`Bạn muốn ${action} nhân viên ${user.full_name}?`)) {
-      try {
-        await toggleUserStatus(user.id, !user.is_active);
-        fetchEmployees();
-      } catch (err) {
-        alert("Lỗi: " + err.message);
-      }
-    }
-  };
 
   if (loading) return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-teal-50 flex items-center justify-center">
@@ -119,7 +70,7 @@ const EmployeeManagement = () => {
               </div>
             </div>
             <button 
-              onClick={() => { resetForm(); setShowForm(!showForm); }} 
+              onClick={toggleForm} 
               className={`${
                 showForm 
                   ? 'bg-gray-500 hover:bg-gray-600' 
@@ -189,8 +140,9 @@ const EmployeeManagement = () => {
                     isEditing ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : 'hover:border-gray-300'
                   }`}
                   placeholder="username123" 
+                  name="username"
                   value={formData.username}
-                  onChange={(e) => setFormData({...formData, username: e.target.value})} 
+                  onChange={handleChange} 
                   disabled={isEditing}
                   required
                 />
@@ -203,8 +155,9 @@ const EmployeeManagement = () => {
                   type="password" 
                   className="w-full border-2 border-gray-200 p-3 rounded-xl outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent hover:border-gray-300 transition-all"
                   placeholder={isEditing ? "Nhập mật khẩu mới..." : "********"}
+                  name="password"
                   value={formData.password}
-                  onChange={(e) => setFormData({...formData, password: e.target.value})}
+                  onChange={handleChange}
                   required={!isEditing} 
                 />
               </div>
@@ -213,8 +166,9 @@ const EmployeeManagement = () => {
                 <input 
                   className="w-full border-2 border-gray-200 p-3 rounded-xl outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent hover:border-gray-300 transition-all" 
                   placeholder="Nguyễn Văn A"
+                  name="full_name"
                   value={formData.full_name}
-                  onChange={(e) => setFormData({...formData, full_name: e.target.value})}
+                  onChange={handleChange}
                   required 
                 />
               </div>
@@ -222,8 +176,9 @@ const EmployeeManagement = () => {
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Vai trò</label>
                 <select 
                   className="w-full border-2 border-gray-200 p-3 rounded-xl outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white hover:border-gray-300 transition-all"
+                  name="role"
                   value={formData.role}
-                  onChange={(e) => setFormData({...formData, role: e.target.value})}
+                  onChange={handleChange}
                 >
                   <option value="waiter">☕ Phục vụ</option>
                   <option value="kitchen">👨‍🍳 Bếp</option>

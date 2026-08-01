@@ -1,111 +1,42 @@
-// src/pages/admin/UserManagement.jsx
-import React, { useState, useEffect } from "react";
-// 👇 Nhớ bổ sung thêm updateUser và toggleUserStatus vào service nhé
-import { getAllUsers, createNewUser, updateUser, toggleUserStatus } from "../../services/authService"; 
-import { Edit, Lock, Unlock, UserPlus, Save, X } from "lucide-react"; // Thêm icon cho đẹp
+import React, { useCallback } from "react";
+import { Edit, Lock, Unlock, UserPlus, Save, X } from "lucide-react";
+import {
+  ADMIN_DEFAULT_FORM,
+  getRoleLabel,
+} from "../../constants/roles";
+import useUserManagement from "../../hooks/useUserManagement";
+
+const ADMIN_FORM_LABELS = {
+  createSuccess: "Tạo tài khoản Admin thành công!",
+  updateSuccess: "Cập nhật thông tin thành công!",
+  error: "Đã có lỗi xảy ra",
+  toggleConfirmPrefix: "Bạn có chắc muốn",
+  toggleError: "Lỗi cập nhật trạng thái",
+};
 
 const UserManagement = () => {
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(false);
-  
-  // State quản lý Form
-  const [showForm, setShowForm] = useState(false);
-  const [isEditing, setIsEditing] = useState(false); // Check xem đang tạo hay sửa
-  const [editingId, setEditingId] = useState(null);
+  const filterAdminUsers = useCallback(
+    (users) => users.filter((user) => ["admin", "super_admin"].includes(user.role)),
+    [],
+  );
 
-  const [formData, setFormData] = useState({
-    username: "",
-    password: "",
-    full_name: "",
-    role: "admin", 
+  const {
+    formData,
+    handleChange,
+    handleEditClick,
+    handleSubmit,
+    handleToggleStatus,
+    isEditing,
+    loading,
+    resetForm,
+    showForm,
+    toggleForm,
+    users,
+  } = useUserManagement({
+    defaultFormData: ADMIN_DEFAULT_FORM,
+    filterUsers: filterAdminUsers,
+    labels: ADMIN_FORM_LABELS,
   });
-
-  const getRoleLabel = (role) => {
-    const labels = {
-      super_admin: "Siêu quản trị",
-      admin: "Quản trị viên",
-      waiter: "Phục vụ",
-      kitchen: "Bếp",
-    };
-    return labels[role] || role;
-  };
-
-  // --- 1. FETCH DATA ---
-  const fetchUsers = async () => {
-    try {
-      setLoading(true);
-      const data = await getAllUsers();
-      // Giả sử API trả về mảng user, mỗi user có trường is_active (true/false)
-      setUsers(data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-  
-  // --- 2. HANDLERS ---
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const resetForm = () => {
-    setFormData({ username: "", password: "", full_name: "", role: "admin" });
-    setIsEditing(false);
-    setEditingId(null);
-    setShowForm(false);
-  };
-
-  // Mở form để SỬA
-  const handleEditClick = (user) => {
-    setFormData({
-      username: user.username,
-      password: "", // Để trống, nếu nhập mới thì đổi pass, không thì thôi
-      full_name: user.full_name,
-      role: user.role,
-    });
-    setEditingId(user.id);
-    setIsEditing(true);
-    setShowForm(true);
-  };
-
-  // Xử lý Submit (Phân loại Tạo mới hoặc Cập nhật)
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      if (isEditing) {
-        // --- LOGIC EDIT ---
-        await updateUser(editingId, formData); // Gọi API update
-        alert("Cập nhật thông tin thành công!");
-      } else {
-        // --- LOGIC CREATE ---
-        await createNewUser(formData); // Gọi API create
-        alert("Tạo tài khoản Admin thành công!");
-      }
-      
-      resetForm();
-      fetchUsers(); // Refresh lại list
-    } catch (err) {
-      alert(err.message || "Đã có lỗi xảy ra");
-    }
-  };
-
-  // Xử lý Khóa/Mở khóa (Deactivate)
-  const handleToggleStatus = async (user) => {
-    const action = user.is_active ? "KHÓA" : "MỞ KHÓA";
-    if (window.confirm(`Bạn có chắc muốn ${action} tài khoản ${user.username}?`)) {
-      try {
-        await toggleUserStatus(user.id, !user.is_active); // Gọi API đổi trạng thái
-        fetchUsers(); // Refresh lại list
-      } catch (err) {
-        alert("Lỗi cập nhật trạng thái: " + err.message);
-      }
-    }
-  };
 
   return (
     <div className="p-6 font-sans">
@@ -116,7 +47,7 @@ const UserManagement = () => {
           <p className="text-sm text-gray-500">Quản lý, chỉnh sửa và phân quyền quản trị viên</p>
         </div>
         <button
-          onClick={() => { resetForm(); setShowForm(!showForm); }}
+          onClick={toggleForm}
           className={`${showForm ? 'bg-gray-500' : 'bg-blue-600'} text-white px-4 py-2 rounded shadow hover:opacity-90 flex items-center gap-2 transition-all`}
         >
           {showForm ? <><X size={18}/> Đóng</> : <><UserPlus size={18}/> Tạo Admin Mới</>}
@@ -138,7 +69,7 @@ const UserManagement = () => {
                 name="username"
                 value={formData.username}
                 onChange={handleChange}
-                disabled={isEditing} // Thường không cho sửa username
+                disabled={isEditing}
                 className={`w-full border p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 ${isEditing ? 'bg-gray-100 text-gray-500' : ''}`}
                 placeholder="VD: admin_quan1"
                 required
@@ -155,7 +86,7 @@ const UserManagement = () => {
                 onChange={handleChange}
                 className="w-full border p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder={isEditing ? "Nhập mật khẩu mới..." : "********"}
-                required={!isEditing} // Bắt buộc khi tạo mới, không bắt buộc khi sửa
+                required={!isEditing}
               />
             </div>
             <div>
@@ -213,7 +144,6 @@ const UserManagement = () => {
                     </span>
                   </td>
                   <td className="p-4">
-                    {/* Hiển thị trạng thái động dựa trên biến is_active */}
                     {user.is_active ? (
                       <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 text-xs px-2.5 py-1 rounded-full font-bold border border-green-200">
                         <span className="w-1.5 h-1.5 rounded-full bg-green-600"></span> Hoạt động
@@ -226,7 +156,6 @@ const UserManagement = () => {
                   </td>
                   <td className="p-4 text-right">
                     <div className="flex justify-end gap-2">
-                      {/* Nút EDIT */}
                       <button 
                         onClick={() => handleEditClick(user)}
                         className="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors tooltip"
@@ -235,7 +164,6 @@ const UserManagement = () => {
                         <Edit size={18} />
                       </button>
 
-                      {/* Nút DEACTIVATE/ACTIVATE */}
                       <button 
                         onClick={() => handleToggleStatus(user)}
                         className={`p-2 rounded-lg transition-colors ${

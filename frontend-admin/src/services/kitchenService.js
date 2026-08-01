@@ -1,58 +1,29 @@
-// src/services/kitchenService.js
 import { adminApi } from "../config/api.js";
 
 const kitchenService = {
-  // Lấy danh sách orders cho Kitchen Display
   getKitchenOrders: async (status = null) => {
-    try {
-      const params = status ? { status } : {};
-      const response = await adminApi.get("/kitchen/orders", { params });
-      return response.data;
-    } catch (error) {
-      console.error("Error fetching kitchen orders:", error);
-      throw error;
-    }
+    const params = status ? { status } : {};
+    const response = await adminApi.get("/kitchen/orders", { params });
+    return response.data;
   },
 
-  // Cập nhật status của order
   updateOrderStatus: async (orderId, status) => {
-    try {
-    
-      const response = await adminApi.patch(
-        `/kitchen/orders/${orderId}/status`,
-        { status }
-      );
-      
-      return response.data;
-    } catch (error) {
-      console.error("Error updating order status:", error);
-      throw error;
-    }
+    const response = await adminApi.patch(`/kitchen/orders/${orderId}/status`, {
+      status,
+    });
+    return response.data;
   },
 
-  // ✅ Cập nhật status của TỪNG MÓN (OrderItem)
   updateOrderItemStatus: async (itemId, status) => {
-    try {
-      const response = await adminApi.put(
-        `/kitchen/items/${itemId}/status`,
-        { status }
-      );
-      return response.data;
-    } catch (error) {
-      console.error("Error updating item status:", error);
-      throw error;
-    }
+    const response = await adminApi.put(`/kitchen/items/${itemId}/status`, {
+      status,
+    });
+    return response.data;
   },
 
-  // Lấy thống kê
   getKitchenStats: async () => {
-    try {
-      const response = await adminApi.get("/kitchen/stats");
-      return response.data;
-    } catch (error) {
-      console.error("Error fetching kitchen stats:", error);
-      throw error;
-    }
+    const response = await adminApi.get("/kitchen/stats");
+    return response.data;
   },
 };
 

@@ -1,78 +1,24 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React from "react";
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   BarChart, Bar, Cell 
 } from "recharts";
 import { DollarSign, ShoppingBag, Users, Utensils, Calendar, Clock } from "lucide-react";
-import reportService from "../../services/reportService";
 import Loading from "../../components/common/Loading";
+import useReportData from "../../hooks/useReportData";
+import { formatCurrency } from "../../utils/reportData";
 
 const ReportPage = () => {
-  const [loading, setLoading] = useState(true);
-  
-  // State dữ liệu
-  const [stats, setStats] = useState({ revenue: 0, orders: 0, activeTables: 0 });
-  const [revenueData, setRevenueData] = useState([]);
-  const [topItems, setTopItems] = useState([]);
-  const [peakHours, setPeakHours] = useState([]); // <--- STATE MỚI CHO PEAK HOURS
-
-  // State bộ lọc ngày
-  const [dateRange, setDateRange] = useState({
-    fromDate: new Date(new Date().setDate(new Date().getDate() - 7)).toISOString().split('T')[0], 
-    toDate: new Date().toISOString().split('T')[0] 
-  });
-
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
-  };
-
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-      // Gọi song song 4 API (Thêm getPeakHours)
-      const [statsRes, revenueRes, topItemsRes, peakHoursRes] = await Promise.all([
-        reportService.getDashboardStats(),
-        reportService.getRevenueChart(dateRange.fromDate, dateRange.toDate),
-        reportService.getTopItems(dateRange.fromDate, dateRange.toDate),
-        reportService.getPeakHours() // <--- GỌI API MỚI
-      ]);
-
-      if (statsRes.success) setStats(statsRes.data);
-      if (revenueRes.success) setRevenueData(revenueRes.data);
-      if (topItemsRes.success) setTopItems(topItemsRes.data);
-
-      // Xử lý dữ liệu Peak Hours (Lấp đầy 0h - 23h)
-      if (peakHoursRes && peakHoursRes.success) {
-        const rawData = peakHoursRes.data;
-        const fullDayData = Array.from({ length: 24 }, (_, i) => {
-            // Tìm xem giờ này có đơn không, không có thì trả về 0
-            const found = rawData.find(d => parseInt(d.hour) === i);
-            return {
-                hour: `${i}:00`, 
-                orders: found ? parseInt(found.order_count) : 0 
-            };
-        });
-        setPeakHours(fullDayData);
-      }
-
-    } catch (error) {
-      console.error("Lỗi tải báo cáo:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [dateRange.fromDate, dateRange.toDate]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  const handleFilter = () => {
-    fetchData();
-  };
-
-  const handleDateChange = (e) => {
-    setDateRange({ ...dateRange, [e.target.name]: e.target.value });
-  };
+  const {
+    dateRange,
+    fetchData,
+    handleDateChange,
+    loading,
+    peakHours,
+    revenueData,
+    stats,
+    topItems,
+  } = useReportData();
 
   if (loading) return <Loading />;
 
@@ -110,7 +56,7 @@ const ReportPage = () => {
                 />
             </div>
             <button 
-                onClick={handleFilter}
+                onClick={fetchData}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-md text-sm font-medium transition-colors"
             >
                 Lọc dữ liệu
@@ -118,7 +64,6 @@ const ReportPage = () => {
         </div>
       </div>
 
-      {/* 1. THẺ TỔNG QUAN (4 CARDS) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
           <div className="flex justify-between items-start">
@@ -158,7 +103,6 @@ const ReportPage = () => {
         </div>
       </div>
 
-      {/* 2. HÀNG BIỂU ĐỒ TRÊN (Doanh thu + Top món) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
         
         {/* Chart: Doanh thu */}
@@ -208,7 +152,6 @@ const ReportPage = () => {
         </div>
       </div>
 
-      {/* 3. HÀNG BIỂU ĐỒ DƯỚI (Peak Hours) - PHẦN MỚI THÊM */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
           <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
             <Clock size={20} className="text-blue-500"/> Khung giờ cao điểm

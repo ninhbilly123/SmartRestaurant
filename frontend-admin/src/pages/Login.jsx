@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { publicApi } from "../config/api"; 
+import { login } from "../services/authService";
 import {
   clearAuth,
   decodeAuthToken,
@@ -21,8 +21,7 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const response = await publicApi.post("/auth/login", { username, password });
-      const { token } = response.data;
+      const { token } = await login({ username, password });
       const payload = decodeAuthToken(token);
       const redirectPath = getDefaultRouteForRole(payload?.role);
 
