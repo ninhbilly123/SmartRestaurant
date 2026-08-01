@@ -1,6 +1,12 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { publicApi } from "../config/api"; 
+import {
+  clearAuth,
+  decodeAuthToken,
+  getDefaultRouteForRole,
+  setAuthToken,
+} from "../utils/auth";
 
 const Login = () => {
   const [username, setUsername] = useState("");
@@ -16,22 +22,16 @@ const Login = () => {
 
     try {
       const response = await publicApi.post("/auth/login", { username, password });
-      const { token, user } = response.data;
+      const { token } = response.data;
+      const payload = decodeAuthToken(token);
+      const redirectPath = getDefaultRouteForRole(payload?.role);
 
-      localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify(user));
-
-      if (user.role === 'super_admin') {
-        navigate("/admin/users");
-      } else if (user.role === 'admin') {
-        navigate("/tables");
-      } else if (user.role === 'waiter') {
-        navigate("/waiter");
-      } else if (user.role === 'kitchen') {
-        navigate("/kitchen");
+      if (redirectPath) {
+        setAuthToken(token);
+        navigate(redirectPath);
       } else {
         setError("Tài khoản này không có quyền truy cập hệ thống quản lý.");
-        localStorage.clear();
+        clearAuth();
       }
     } catch (err) {
       const msg = err.message || "Đăng nhập thất bại";

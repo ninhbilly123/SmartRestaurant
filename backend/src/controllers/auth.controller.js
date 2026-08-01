@@ -32,7 +32,12 @@ export const login = async (req, res) => {
 
     // Tạo Token
     const token = jwt.sign(
-      { id: user.id, role: user.role },
+      {
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        fullName: user.full_name,
+      },
       process.env.JWT_SECRET || 'secret',
       { expiresIn: '24h' }
     );

@@ -25,36 +25,20 @@ import {
   MenuItemForm,
   ModifierGroupList,
 } from "./components/admin/menu";
+import {
+  getAuthRole,
+  getAuthToken,
+  getDefaultRouteForRole,
+} from "./utils/auth";
 import "./App.css";
 
 // --- 1. HÀM LẤY ROLE TỪ TOKEN ---
-const getUserRole = () => {
-  const token = localStorage.getItem("token");
-  if (!token) return null;
-  try {
-    const base64Url = token.split(".")[1];
-    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    const jsonPayload = decodeURIComponent(
-      window
-        .atob(base64)
-        .split("")
-        .map(function (c) {
-          return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
-        })
-        .join("")
-    );
-    return JSON.parse(jsonPayload).role;
-  } catch (e) {
-    return null;
-  }
-};
-
 // --- 2. COMPONENT BẢO VỆ CHUNG (RoleRoute) ---
 const RoleRoute = ({ allowedRoles }) => {
-  const token = localStorage.getItem("token");
-  const role = getUserRole();
+  const token = getAuthToken();
+  const role = getAuthRole();
 
-  if (!token) return <Navigate to="/login" replace />;
+  if (!token || !role) return <Navigate to="/login" replace />;
 
   // Nếu Role hợp lệ -> Cho vào
   if (allowedRoles.includes(role)) {
@@ -65,7 +49,7 @@ const RoleRoute = ({ allowedRoles }) => {
   if (role === "kitchen") return <Navigate to="/kitchen" replace />;
   if (role === "waiter") return <Navigate to="/waiter" replace />;
 
-  return <Navigate to="/" replace />;
+  return <Navigate to={getDefaultRouteForRole(role) || "/login"} replace />;
 };
 
 function App() {

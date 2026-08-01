@@ -1,5 +1,6 @@
 // src/config/api.js (hoặc apiConfig.js)
 import axios from "axios";
+import { clearAuth, getAuthToken } from "../utils/auth";
 
 const BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
@@ -27,7 +28,7 @@ const setupInterceptors = (instance) => {
   instance.interceptors.request.use(
     (config) => {
       // Add auth token here when authentication is implemented
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -47,8 +48,7 @@ const setupInterceptors = (instance) => {
         console.warn("Token hết hạn hoặc không hợp lệ. Đang đăng xuất...");
         
         // Xóa token bẩn
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        clearAuth();
         
         // Đá về trang Login (Dùng window.location để refresh lại app sạch sẽ)
         // Vì bạn dùng HashRouter nên đường dẫn là /#/login

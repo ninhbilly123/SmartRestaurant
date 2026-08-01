@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { clearAuth, getAuthPayload, getDefaultRouteForRole } from "../../utils/auth";
 
 const Navbar = () => {
   const location = useLocation();
@@ -7,13 +8,14 @@ const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
 
   // --- 1. LẤY THÔNG TIN USER ---
-  const user = JSON.parse(localStorage.getItem("user"));
-  const role = user?.role;
+  const authPayload = getAuthPayload();
+  const role = authPayload?.role;
+  const displayName =
+    authPayload?.fullName || authPayload?.username || role || "User";
 
   // --- 2. HÀM ĐĂNG XUẤT ---
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    clearAuth();
     navigate("/login");
   };
 
@@ -29,10 +31,7 @@ const Navbar = () => {
 
   // Logic logo: Bếp về bếp, Phục vụ về phục vụ, Admin về bàn
   const getLogoLink = () => {
-    if (role === "super_admin") return "/admin/users";
-    if (role === "kitchen") return "/kitchen";
-    if (role === "waiter") return "/waiter";
-    return "/tables";
+    return getDefaultRouteForRole(role) || "/login";
   };
 
   return (
@@ -282,7 +281,7 @@ const Navbar = () => {
               <div className="flex items-center gap-3 border-l pl-4 ml-2">
                 <div className="text-right hidden md:block">
                   <div className="text-sm font-bold text-gray-800">
-                    {user?.full_name || user?.username}
+                    {displayName}
                   </div>
                   <div className="text-xs text-gray-500 uppercase">{role}</div>
                 </div>
