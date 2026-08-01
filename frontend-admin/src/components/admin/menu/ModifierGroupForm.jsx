@@ -3,7 +3,7 @@ import Modal from "../../common/Modal";
 import Button from "../../common/Button";
 import Input from "../../common/Input";
 import Alert from "../../common/Alert";
-import menuService from "../../../services/menuService";
+import { modifierService } from "../../../services/menu";
 
 const ModifierGroupForm = ({ isOpen, onClose, onSuccess, group }) => {
 	const [formData, setFormData] = useState({
@@ -177,12 +177,12 @@ const ModifierGroupForm = ({ isOpen, onClose, onSuccess, group }) => {
 			let savedGroup;
 
 			if (isEditing) {
-				savedGroup = await menuService.updateModifierGroup(
+        savedGroup = await modifierService.updateModifierGroup(
 					group.id,
 					formData
 				);
 			} else {
-				savedGroup = await menuService.createModifierGroup(formData);
+        savedGroup = await modifierService.createModifierGroup(formData);
 			}
 
 			const groupId = savedGroup.data?.id || group?.id;
@@ -190,7 +190,7 @@ const ModifierGroupForm = ({ isOpen, onClose, onSuccess, group }) => {
 			// Create new options
 			const newOptions = options.filter((opt) => opt.isNew);
 			for (const opt of newOptions) {
-				await menuService.createModifierOption(groupId, {
+          await modifierService.createModifierOption(groupId, {
 					name: opt.name,
 					price_adjustment: opt.price_adjustment,
 					status: opt.status,

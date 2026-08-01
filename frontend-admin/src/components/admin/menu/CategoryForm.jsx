@@ -3,7 +3,7 @@ import Modal from "../../common/Modal";
 import Button from "../../common/Button";
 import Input from "../../common/Input";
 import Alert from "../../common/Alert";
-import menuService from "../../../services/menuService";
+import { categoryService } from "../../../services/menu";
 
 const CategoryForm = ({ isOpen, onClose, onSuccess, category }) => {
   const [formData, setFormData] = useState({
@@ -90,9 +90,9 @@ const CategoryForm = ({ isOpen, onClose, onSuccess, category }) => {
 
     try {
       if (isEditing) {
-        await menuService.updateCategory(category.id, submitData);
+        await categoryService.updateCategory(category.id, submitData);
       } else {
-        await menuService.createCategory(submitData);
+        await categoryService.createCategory(submitData);
       }
       onSuccess();
     } catch (err) {

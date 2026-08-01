@@ -1,6 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import menuService from "../../../services/menuService";
+import {
+  categoryService,
+  menuItemService,
+  menuPhotoService,
+  modifierService,
+} from "../../../services/menu";
 import Button from "../../common/Button";
 import Input from "../../common/Input";
 import Loading from "../../common/Loading";
@@ -57,15 +62,15 @@ const MenuItemForm = () => {
     try {
       setFetchLoading(true);
       const [categoriesRes, modifiersRes] = await Promise.all([
-        menuService.getCategories(),
-        menuService.getModifierGroups().catch(() => ({ data: [] })),
+        categoryService.getCategories(),
+        modifierService.getModifierGroups().catch(() => ({ data: [] })),
       ]);
 
       setCategories(categoriesRes.data || []);
       setModifierGroups(modifiersRes.data || []);
 
       if (isEditing) {
-        const itemRes = await menuService.getItemById(id);
+        const itemRes = await menuItemService.getItemById(id);
         const item = itemRes.data;
 
         setFormData({
@@ -166,7 +171,7 @@ const MenuItemForm = () => {
 
       let savedItem;
       if (isEditing) {
-        savedItem = await menuService.updateItem(id, dataToSubmit);
+        savedItem = await menuItemService.updateItem(id, dataToSubmit);
       } else {
         // Tạo item mới với photos (nếu có)
         // Sắp xếp lại photos: primary photo đầu tiên
@@ -182,13 +187,13 @@ const MenuItemForm = () => {
         }
         // Lấy các File objects từ pendingPhotos (đã sắp xếp)
         const photoFiles = orderedPhotos.map((p) => p.file);
-        savedItem = await menuService.createItem(dataToSubmit, photoFiles);
+        savedItem = await menuItemService.createItem(dataToSubmit, photoFiles);
       }
 
       // Update modifier groups (always call to handle removal of all modifiers)
       const itemId = savedItem.data?.id || id;
       if (itemId) {
-        await menuService.attachModifierGroups(itemId, selectedModifierGroups);
+        await menuItemService.attachModifierGroups(itemId, selectedModifierGroups);
       }
 
       setSuccess(
@@ -257,7 +262,7 @@ const MenuItemForm = () => {
     // Nếu đang edit, upload ngay như cũ
     setUploadingPhotos(true);
     try {
-      const response = await menuService.uploadPhotos(id, validFiles);
+      const response = await menuPhotoService.uploadPhotos(id, validFiles);
       setPhotos((prev) => [...prev, ...(response.photos || [])]);
       setSuccess("Tải ảnh thành công!");
     } catch (err) {
@@ -295,7 +300,7 @@ const MenuItemForm = () => {
     if (!isEditing) return;
 
     try {
-      await menuService.deletePhoto(id, photoId);
+      await menuPhotoService.deletePhoto(id, photoId);
       setPhotos((prev) => prev.filter((p) => p.id !== photoId));
       setSuccess("Xóa ảnh thành công!");
     } catch (err) {
@@ -307,7 +312,7 @@ const MenuItemForm = () => {
     if (!isEditing) return;
 
     try {
-      await menuService.setPrimaryPhoto(id, photoId);
+      await menuPhotoService.setPrimaryPhoto(id, photoId);
       setPhotos((prev) =>
         prev.map((p) => ({
           ...p,

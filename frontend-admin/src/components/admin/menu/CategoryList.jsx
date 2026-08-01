@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import menuService from "../../../services/menuService";
+import { categoryService } from "../../../services/menu";
 import Button from "../../common/Button";
 import Badge from "../../common/Badge";
 import Loading from "../../common/Loading";
@@ -33,7 +33,7 @@ const CategoryList = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await menuService.getCategories();
+      const response = await categoryService.getCategories();
       setCategories(response.data || []);
     } catch (err) {
       setError(err.message || "Không thể tải danh mục");
@@ -106,10 +106,10 @@ const CategoryList = () => {
       const { categoryId, action, newStatus } = confirmDialog;
 
       if (action === "delete") {
-        await menuService.deleteCategory(categoryId);
+        await categoryService.deleteCategory(categoryId);
         setSuccess("Xóa danh mục thành công");
       } else if (action === "status") {
-        await menuService.updateCategoryStatus(categoryId, newStatus);
+        await categoryService.updateCategoryStatus(categoryId, newStatus);
         setSuccess(
           `Đã cập nhật trạng thái danh mục thành ${newStatus === "active" ? "Hoạt động" : "Tạm ngừng"}`,
         );

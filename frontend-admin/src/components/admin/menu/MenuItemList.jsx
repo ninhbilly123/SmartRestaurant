@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import menuService from "../../../services/menuService";
+import { categoryService, menuItemService } from "../../../services/menu";
 import Button from "../../common/Button";
 import Badge from "../../common/Badge";
 import Loading from "../../common/Loading";
@@ -40,8 +40,8 @@ const MenuItemList = () => {
       setLoading(true);
       setError(null);
       const [itemsRes, categoriesRes] = await Promise.all([
-        menuService.getAllItems(),
-        menuService.getCategories(),
+        menuItemService.getAllItems(),
+        categoryService.getCategories(),
       ]);
       setItems(itemsRes.data || []);
       setCategories(categoriesRes.data || []);
@@ -121,7 +121,7 @@ const MenuItemList = () => {
 
   const confirmDelete = async () => {
     try {
-      await menuService.deleteItem(confirmDialog.itemId);
+      await menuItemService.deleteItem(confirmDialog.itemId);
       setSuccess("Đã xóa món ăn thành công");
       fetchData();
     } catch (err) {

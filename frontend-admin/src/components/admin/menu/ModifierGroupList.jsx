@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import menuService from "../../../services/menuService";
+import { modifierService } from "../../../services/menu";
 import Button from "../../common/Button";
 import Badge from "../../common/Badge";
 import Loading from "../../common/Loading";
@@ -32,7 +32,7 @@ const ModifierGroupList = () => {
 		try {
 			setLoading(true);
 			setError(null);
-			const response = await menuService.getModifierGroups();
+      const response = await modifierService.getModifierGroups();
 			setModifierGroups(response.data || []);
 		} catch (err) {
 			setError(err.message || "Không thể tải nhóm tùy chọn");
@@ -74,10 +74,10 @@ const ModifierGroupList = () => {
 	const confirmDelete = async () => {
 		try {
 			if (confirmDialog.type === "group") {
-				await menuService.deleteModifierGroup(confirmDialog.id);
+        await modifierService.deleteModifierGroup(confirmDialog.id);
 				setSuccess("Đã xóa nhóm tùy chọn thành công");
 			} else {
-				await menuService.deleteModifierOption(confirmDialog.id);
+        await modifierService.deleteModifierOption(confirmDialog.id);
 				setSuccess("Đã xóa lựa chọn thành công");
 			}
 			fetchModifierGroups();

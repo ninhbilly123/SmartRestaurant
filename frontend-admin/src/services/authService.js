@@ -13,8 +13,6 @@ export const createNewUser = async (userData) => {
   return response.data;
 };
 
-// --- 👇 CÁC HÀM MỚI BỔ SUNG 👇 ---
-
 // 3. Cập nhật thông tin User (Edit)
 export const updateUser = async (id, userData) => {
   // Gửi method PUT kèm ID trên URL và dữ liệu mới trong Body
