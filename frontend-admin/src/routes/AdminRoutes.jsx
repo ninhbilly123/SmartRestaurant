@@ -18,31 +18,29 @@ const ModifierGroupList = lazy(() =>
 );
 const NotFoundPage = lazy(() => import("../pages/NotFoundPage"));
 
-const AdminRoutes = () => {
-  return (
-    <Route element={<RoleRoute allowedRoles={["admin", "super_admin"]} />}>
-      <Route element={<Layout />}>
-        <Route path="/" element={<HomeRedirect />} />
-        <Route path="/admin/reports" element={<ReportPage />} />
-        <Route path="/tables" element={<TableList />} />
-        <Route path="/tables/new" element={<TableForm />} />
-        <Route path="/tables/:id" element={<TableForm />} />
-        <Route path="/tables/:id/qr" element={<QRCodePage />} />
-        <Route path="/admin/menu/categories" element={<CategoryList />} />
-        <Route path="/admin/menu/items" element={<MenuItemList />} />
-        <Route path="/admin/menu/items/new" element={<MenuItemForm />} />
-        <Route path="/admin/menu/items/:id" element={<MenuItemForm />} />
-        <Route path="/admin/menu/modifiers" element={<ModifierGroupList />} />
-        <Route path="/admin/employees" element={<EmployeeManagement />} />
+const adminRoutes = (
+  <Route element={<RoleRoute allowedRoles={["admin", "super_admin"]} />}>
+    <Route element={<Layout />}>
+      <Route path="/" element={<HomeRedirect />} />
+      <Route path="/admin/reports" element={<ReportPage />} />
+      <Route path="/tables" element={<TableList />} />
+      <Route path="/tables/new" element={<TableForm />} />
+      <Route path="/tables/:id" element={<TableForm />} />
+      <Route path="/tables/:id/qr" element={<QRCodePage />} />
+      <Route path="/admin/menu/categories" element={<CategoryList />} />
+      <Route path="/admin/menu/items" element={<MenuItemList />} />
+      <Route path="/admin/menu/items/new" element={<MenuItemForm />} />
+      <Route path="/admin/menu/items/:id" element={<MenuItemForm />} />
+      <Route path="/admin/menu/modifiers" element={<ModifierGroupList />} />
+      <Route path="/admin/employees" element={<EmployeeManagement />} />
 
-        <Route element={<RoleRoute allowedRoles={["super_admin"]} />}>
-          <Route path="/admin/users" element={<UserManagement />} />
-        </Route>
-
-        <Route path="*" element={<NotFoundPage />} />
+      <Route element={<RoleRoute allowedRoles={["super_admin"]} />}>
+        <Route path="/admin/users" element={<UserManagement />} />
       </Route>
-    </Route>
-  );
-};
 
-export default AdminRoutes;
+      <Route path="*" element={<NotFoundPage />} />
+    </Route>
+  </Route>
+);
+
+export default adminRoutes;

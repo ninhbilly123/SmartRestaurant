@@ -1,6 +1,6 @@
 import React, { Suspense, lazy } from "react";
 import { HashRouter as Router, Routes, Route } from "react-router-dom";
-import AdminRoutes from "./routes/AdminRoutes";
+import adminRoutes from "./routes/AdminRoutes";
 import RoleRoute from "./routes/RoleRoute";
 import "./App.css";
 
@@ -26,7 +26,7 @@ function App() {
           <Route element={<RoleRoute allowedRoles={["waiter"]} />}>
             <Route path="/waiter" element={<WaiterPage />} />
           </Route>
-          <AdminRoutes />
+          {adminRoutes}
         </Routes>
       </Suspense>
     </Router>
