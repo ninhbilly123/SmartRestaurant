@@ -8,6 +8,11 @@ import {
   Trash2,
   Utensils,
 } from "lucide-react";
+import {
+  formatCurrency,
+  getMinutesWaiting,
+  getWaiterStatusLabel,
+} from "../../utils/waiterOrders";
 
 const getOrderBorderClass = ({
   hasNewRequest,
@@ -42,9 +47,6 @@ const getHeaderClass = ({
 };
 
 const WaiterOrderCard = ({
-  formatCurrency,
-  getMinutesWaiting,
-  getStatusLabel,
   onConfirmCashPayment,
   onOpenBillModal,
   onRejectItem,
@@ -190,7 +192,7 @@ const WaiterOrderCard = ({
                   )}
                   <div className="flex flex-wrap gap-1">
                     <span className="text-[9px] bg-gray-100 px-1 rounded text-gray-500">
-                      {getStatusLabel(item.status)}
+                      {getWaiterStatusLabel(item.status)}
                     </span>
                     {item.status === "cancelled" && (
                       <span className="text-[9px] text-red-500">
