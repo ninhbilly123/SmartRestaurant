@@ -1,5 +1,6 @@
 import Customer from '../models/customer.js';
 import customerService from '../services/customer.service.js';
+import logger from '../config/logger.js';
 
 const authCustomer = async (req, res, next) => {
   try {
@@ -8,7 +9,6 @@ const authCustomer = async (req, res, next) => {
     //Trường hợp chưa đăng nhập
     if (!token) {
       req.user = null; 
-      console.log("Đặt món thành công (không đăng nhập)");
       return next(); 
     }
 
@@ -32,20 +32,19 @@ const authCustomer = async (req, res, next) => {
           email: customer.email,
           role: "customer"
         };
-        console.log(`Xác thực thành viên: ${customer.username}`);
       } else {
         req.user = null; 
       }
 
     } catch (tokenError) {
-      console.warn("Token lỗi hoặc hết hạn, xử lý như khách vãng lai");
+      logger.warn("Token khách hàng lỗi hoặc hết hạn, xử lý như khách vãng lai");
       req.user = null;
     }
 
     next();
     
   } catch (error) {
-    console.error("Lỗi hệ thống tại Auth middleware:", error.message);
+    logger.error("Lỗi hệ thống tại Auth middleware:", error.message);
     return res.status(500).json({ 
       success: false, 
       error: "Lỗi hệ thống xác thực" 

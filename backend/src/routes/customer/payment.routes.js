@@ -12,8 +12,10 @@ router.post('/orders/:orderId/select-payment-method', paymentController.selectPa
 // Hoàn tất thanh toán (Sau khi payment gateway xác nhận)
 router.post('/orders/:orderId/complete-payment', paymentController.completePayment);
 
-// [MOCK] Payment Gateway Callbacks
+// Payment Gateway
 router.get('/payment/vnpay-callback', paymentController.vnpayCallback);
+router.post('/payment/momo/create', paymentController.momoPayment);
+// Backward compatible alias for older frontend code.
 router.post('/payment/momo-callback', paymentController.momoPayment);
 router.post('/payment/callback', paymentController.momoCallback)
 router.post('/payment/check-status', paymentController.checkStatus);

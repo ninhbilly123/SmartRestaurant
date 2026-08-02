@@ -1,5 +1,6 @@
 import QRService from "../services/qr.service.js";
 import Table from "../models/table.js";
+import logger from "../config/logger.js";
 
 export default async (req, res, next) => {
 	try {
@@ -56,7 +57,7 @@ export default async (req, res, next) => {
 		// Check if current token matches
 		if (table.qr_token !== token) {
 			// Log security event
-			console.warn(
+			logger.warn(
 				`[SECURITY] Old/invalid QR token used for table ${table.table_number}`
 			);
 
@@ -72,7 +73,7 @@ export default async (req, res, next) => {
 		req.tableId = decoded.tableId;
 		next();
 	} catch (error) {
-		console.error("Error verifying QR token:", error);
+		logger.error("Error verifying QR token:", error);
 		res.status(500).json({
 			success: false,
 			message: "Failed to verify QR code",

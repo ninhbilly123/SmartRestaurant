@@ -1,5 +1,6 @@
 import otpService from "../../services/otp.service.js";
 import otpValidator from "../../validators/otp.validator.js";
+import logger from "../../config/logger.js";
 
 export const otpController = {
   // 1. VERIFY EMAIL OTP
@@ -15,7 +16,7 @@ export const otpController = {
 
       const { customerId, email, otp } = req.body;
 
-      console.log("🔍 Verify OTP request:", { customerId, email });
+      logger.info("Verify OTP request:", { customerId, email });
 
       const result = await otpService.verifyOTP(customerId, email, otp);
 
@@ -55,7 +56,7 @@ export const otpController = {
 
       const { customerId, email } = req.body;
 
-      console.log("🔄 Resend OTP request:", { customerId, email });
+      logger.info("Resend OTP request:", { customerId, email });
 
       const result = await otpService.resendOTP(customerId, email);
 

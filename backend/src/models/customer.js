@@ -7,7 +7,6 @@ class Customer extends Model {
   async comparePassword(candidatePassword) {
       // Nếu là Google user (không có password)
       if (this.auth_method === 'google') {
-        console.log("[MODEL] Google user - không kiểm tra password");
         return false; 
       }
       

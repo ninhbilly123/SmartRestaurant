@@ -5,6 +5,7 @@ import MenuItem from '../../models/menuItem.js';
 import { CategoryService } from '../../services/category.service.js';
 import {createCategorySchema, updateCategorySchema, updateCategoryStatusSchema } from '../../validators/category.validator.js'
 import { validate } from '../../middlewares/validator.js';
+import logger from '../../config/logger.js';
 
 
 
@@ -77,7 +78,7 @@ export const updateCategory = [
       // Validate business logic
       const validationErrors = await CategoryService.validateUpdateData(id, validatedData);
       if (validationErrors.length > 0) {
-        console.log("⚠️ [DEBUG] Validation Failed:", validationErrors);
+        logger.warn("Category validation failed:", validationErrors);
         
         return res.status(400).json({
           success: false,
@@ -132,7 +133,7 @@ export const updateCategoryStatus = [
     try {
       const { status } = req.validatedData;
       const { id } = req.params;
-      console.log(`🔄 Updating status of category ${id} to "${status}"`);
+      logger.info(`Updating status of category ${id} to "${status}"`);
       
       // Validate business logic
       const validationErrors = await CategoryService.validateStatusUpdate(

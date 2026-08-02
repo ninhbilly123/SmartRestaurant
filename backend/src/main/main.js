@@ -1,31 +1,41 @@
 // src/main.js
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
+import helmet from 'helmet';
+import morgan from 'morgan';
 import { createServer } from 'http'; // [NEW] Import HTTP module
 import { Server } from 'socket.io';  // [NEW] Import Socket.IO
 
 import db from '../models/index.js'; 
 import rootRouter from '../routes/index.js';
 import tablePublicRoutes from "../routes/restaurant/tablePublic.routes.js"
-
-dotenv.config();
+import env from '../config/env.js';
+import logger from '../config/logger.js';
+import { errorHandler, notFoundHandler } from '../middlewares/errorHandler.middleware.js';
 
 const app = express();
 //app.use('/uploads', express.static('uploads'));
-const PORT = process.env.PORT || 5000;
+const PORT = env.port;
+const allowedOrigins = [
+  env.cors.frontendUrl,
+  "http://localhost:3001",
+].filter(Boolean);
 
 // [NEW] Setup HTTP Server & Socket.IO
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: "*", // Cho phép Frontend (localhost:3000, etc) kết nối
+    origin: allowedOrigins,
     methods: ["GET", "POST", "PUT", "DELETE"]
   }
 });
 
 // Middleware
-app.use(cors());
+app.use(helmet());
+app.use(cors({ origin: allowedOrigins }));
+if (!env.isProduction) {
+  app.use(morgan("dev"));
+}
 app.use(express.json());
 
 // [NEW] Middleware chèn biến 'io' vào mọi request
@@ -37,10 +47,10 @@ app.use((req, res, next) => {
 
 // Socket.IO Connection Events (Optional: Để debug)
 io.on('connection', (socket) => {
-  console.log('>>> A user connected via Socket:', socket.id);
+  logger.info('Socket connected:', socket.id);
   
   socket.on('disconnect', () => {
-    console.log('>>> User disconnected:', socket.id);
+    logger.info('Socket disconnected:', socket.id);
   });
 });
 
@@ -57,23 +67,27 @@ app.get("/connected", (req, res) => {
   });
 });
 
+app.use(notFoundHandler);
+app.use(errorHandler);
+
 // Start server
 async function startServer() {
   try {
     await db.sequelize.authenticate();
-    console.log('>>> Database connected successfully');
+    logger.info('Database connected successfully');
     
-    // Sync database
-    await db.sequelize.sync({ alter: true });
-    console.log('>>> Database synced & Associations setup automatically');
+    if (env.database.syncAlter) {
+      await db.sequelize.sync({ alter: true });
+      logger.warn('Database schema synced with alter=true');
+    }
     
     // [CHANGED] Dùng httpServer.listen thay vì app.listen
     httpServer.listen(PORT, () => {
-      console.log(`>>> Server running at http://localhost:${PORT}`);
+      logger.info(`Server running at http://localhost:${PORT}`);
     });
     
   } catch (error) {
-    console.error('Unable to start server:', error);
+    logger.error('Unable to start server:', error);
     process.exit(1);
   }
 }

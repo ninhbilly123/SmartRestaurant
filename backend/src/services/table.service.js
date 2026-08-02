@@ -1,6 +1,7 @@
 import Table from '../models/table.js';
 import { Op } from 'sequelize';
 import QRService from './qr.service.js';
+import logger from '../config/logger.js';
 
 export class TableService {
 
@@ -252,8 +253,8 @@ export class TableService {
 
     // Log old token for security monitoring (optional)
     if (table.qr_token) {
-      console.log(`[SECURITY] QR token regenerated for table ${table.table_number} (ID: ${table.id})`);
-      console.log(`[SECURITY] Old token invalidated at: ${new Date().toISOString()}`);
+      logger.info(`[SECURITY] QR token regenerated for table ${table.table_number} (ID: ${table.id})`);
+      logger.info(`[SECURITY] Old token invalidated at: ${new Date().toISOString()}`);
     }
 
     // Generate new token

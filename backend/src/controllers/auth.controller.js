@@ -1,10 +1,8 @@
 import db from '../models/index.js';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs'; 
-import dotenv from 'dotenv'; 
 import { Op } from 'sequelize';
-
-dotenv.config(); 
+import env from '../config/env.js';
 
 const User = db.User;
 
@@ -38,8 +36,8 @@ export const login = async (req, res) => {
         role: user.role,
         fullName: user.full_name,
       },
-      process.env.JWT_SECRET || 'secret',
-      { expiresIn: '24h' }
+      env.jwt.secret,
+      { expiresIn: env.jwt.expiresIn }
     );
 
     return res.status(200).json({

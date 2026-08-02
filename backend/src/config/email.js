@@ -1,14 +1,18 @@
 // backend/src/config/email.js
 import sgMail from '@sendgrid/mail';
+import env from './env.js';
+import logger from './logger.js';
 
 // Khởi tạo SendGrid với API key từ .env
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+if (env.email.sendgridApiKey) {
+  sgMail.setApiKey(env.email.sendgridApiKey);
+}
 
 // Địa chỉ email gửi đi (dùng từ .env)
-const SENDGRID_FROM = process.env.SENDGRID_FROM || 'nhatduy123n@gmail.com';
+const SENDGRID_FROM = env.email.sendgridFrom;
 
 /**
- * Tạo transporter tương thích với nodemailer
+ * Tạo transporter chung cho service gửi email.
  */
 const transporter = {
   /**
@@ -27,20 +31,20 @@ const transporter = {
         ...(mailOptions.attachments && { attachments: mailOptions.attachments })
       };
 
-      console.log(`📧 Sending email via SendGrid to: ${mailOptions.to}`);
+      logger.info(`Sending email via SendGrid to: ${mailOptions.to}`);
       const response = await sgMail.send(msg);
       
-      console.log(`✅ Email sent successfully. Status: ${response[0].statusCode}`);
+      logger.info(`Email sent successfully. Status: ${response[0].statusCode}`);
       return {
         messageId: response[0].headers['x-message-id'],
         response: response[0]
       };
     } catch (error) {
-      console.error('❌ SendGrid error:', error.message);
+      logger.error('SendGrid error:', error.message);
       
       // Log chi tiết lỗi nếu có
       if (error.response) {
-        console.error('SendGrid response:', error.response.body);
+        logger.error('SendGrid response:', error.response.body);
       }
       
       throw new Error(`Failed to send email: ${error.message}`);
@@ -48,14 +52,14 @@ const transporter = {
   },
 
   /**
-   * Kiểm tra kết nối SendGrid (tương tự nodemailer.verify())
+   * Kiểm tra kết nối SendGrid.
    * @param {Function} callback - Callback function
    */
   verify: (callback) => {
     // Kiểm tra API key có tồn tại không
-    if (!process.env.SENDGRID_API_KEY) {
+    if (!env.email.sendgridApiKey) {
       const error = new Error('SENDGRID_API_KEY is not defined in environment variables');
-      console.error('❌', error.message);
+      logger.error(error.message);
       return callback(error, false);
     }
 
@@ -70,30 +74,25 @@ const transporter = {
 
     sgMail.send(testMsg)
       .then(() => {
-        console.log('✅ SendGrid connection verified successfully');
+        logger.info('SendGrid connection verified successfully');
         callback(null, true);
       })
       .catch((error) => {
-        console.error('❌ SendGrid verification failed:', error.message);
+        logger.error('SendGrid verification failed:', error.message);
         callback(error, false);
       });
   }
 };
 
-// Tự động kiểm tra kết nối khi khởi động
-console.log('🔄 Initializing SendGrid email service...');
-
 // Kiểm tra cấu hình
-if (!process.env.SENDGRID_API_KEY) {
-  console.warn('⚠️  SENDGRID_API_KEY is missing. Email service may not work.');
+if (!env.email.sendgridApiKey) {
+  logger.warn('SENDGRID_API_KEY is missing. Email service may not work.');
 } else {
-  console.log('✅ SendGrid API key loaded');
+  logger.info('SendGrid API key loaded');
 }
 
 if (!SENDGRID_FROM) {
-  console.warn('⚠️  SENDGRID_FROM is not set. Using default sender.');
+  logger.warn('SENDGRID_FROM is not set. Email sending may fail.');
 }
-
-console.log('📧 SendGrid transporter ready');
 
 export default transporter;

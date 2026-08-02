@@ -1,5 +1,7 @@
 // backend/src/services/email.service.js
 import transporter from '../config/email.js';
+import env from '../config/env.js';
+import logger from '../config/logger.js';
 
 class EmailService {
   // Gửi OTP cho đăng ký
@@ -88,18 +90,17 @@ class EmailService {
         text: `Xin chào ${username || 'bạn'}, mã OTP của bạn là: ${otp}. Mã có hiệu lực trong 15 phút.`
       };
 
-      console.log(`📧 Gửi OTP đến: ${email}`);
-      const info = await transporter.sendMail(mailOptions);
+      await transporter.sendMail(mailOptions);
       
-      console.log('✅ OTP email sent successfully!');
+      logger.info(`OTP email sent to: ${email}`);
       return true;
       
     } catch (error) {
-      console.error('❌ Error sending OTP email:', error.message);
+      logger.error('Error sending OTP email:', error.message);
       
       // Trong development, log và tiếp tục
-      if (process.env.NODE_ENV === 'development') {
-        console.log('⚠️ Development mode: Email not sent, but continuing...');
+      if (!env.isProduction) {
+        logger.warn('Development mode: Email not sent, but continuing...');
         return true; // Trả về true để không fail register
       }
       
@@ -111,8 +112,6 @@ class EmailService {
   // Gửi email thông báo xác thực thành công
   async sendVerificationSuccessEmail(email, username = '') {
     try {
-      console.log(`📧 Sending verification success email to: ${email}`);
-      
       const mailOptions = {
         to: email,
         subject: '🎉 Xác thực email thành công - Smart Restaurant',
@@ -159,13 +158,13 @@ class EmailService {
         text: `Chúc mừng ${username || 'bạn'}! Email của bạn đã được xác thực thành công tại Smart Restaurant.`
       };
 
-      const info = await transporter.sendMail(mailOptions);
+      await transporter.sendMail(mailOptions);
       
-      console.log('✅ Verification success email sent!');
+      logger.info(`Verification success email sent to: ${email}`);
       return true;
       
     } catch (error) {
-      console.error('❌ Error sending verification success email:', error.message);
+      logger.error('Error sending verification success email:', error.message);
       // Không throw error vì đây chỉ là email thông báo, không ảnh hưởng đến luồng chính
       return false;
     }
@@ -174,7 +173,7 @@ class EmailService {
   // Thêm các hàm email khác nếu cần
   async sendPasswordResetEmail(email, resetToken, username = '') {
     try {
-      const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+      const resetUrl = `${env.cors.frontendUrl}/reset-password?token=${resetToken}`;
       
       const mailOptions = {
         to: email,
@@ -223,14 +222,13 @@ class EmailService {
         text: `Xin chào ${username || 'bạn'}, nhấn vào link sau để đặt lại mật khẩu: ${resetUrl}. Link hết hạn sau 1 giờ.`
       };
 
-      console.log(`📧 Gửi email đặt lại mật khẩu đến: ${email}`);
       await transporter.sendMail(mailOptions);
       
-      console.log('✅ Password reset email sent!');
+      logger.info(`Password reset email sent to: ${email}`);
       return true;
       
     } catch (error) {
-      console.error('❌ Error sending password reset email:', error.message);
+      logger.error('Error sending password reset email:', error.message);
       throw error;
     }
   }

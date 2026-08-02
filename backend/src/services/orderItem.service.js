@@ -1,5 +1,6 @@
 // services/orderItem.service.js
 import db from '../models/index.js'; // Import từ db chung
+import logger from '../config/logger.js';
 
 class OrderItemService {
   /**
@@ -77,7 +78,7 @@ class OrderItemService {
       // 2. Commit Transaction
       await transaction.commit();
       
-      console.log(`✅ Added items. Batch total: ${batchTotalAmount}. New Order Total: ${currentOrder.total_amount}`);
+      logger.info(`Added items. Batch total: ${batchTotalAmount}. New Order Total: ${currentOrder.total_amount}`);
 
       return true; 
 

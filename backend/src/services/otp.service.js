@@ -1,6 +1,7 @@
 import VerifiedEmail from "../models/verifiedEmail.js";
 import Customer from "../models/customer.js";
 import emailService from "./email.service.js";
+import logger from "../config/logger.js";
 
 class OTPService {
   // HÀM TẠO OTP 6 SỐ - THÊM VÀO ĐÂY
@@ -143,7 +144,7 @@ class OTPService {
         }
       });
 
-      console.log(`✅ Đã xóa ${result} OTP hết hạn`);
+      logger.info(`Đã xóa ${result} OTP hết hạn`);
       return result;
     } catch (error) {
       console.error("Cleanup OTPs error:", error);

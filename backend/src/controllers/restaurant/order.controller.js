@@ -1,6 +1,7 @@
 // controllers/restaurant/order.controller.js
 import db from '../../models/index.js';
 import { Op } from 'sequelize';
+import logger from '../../config/logger.js';
 const { Order, OrderItem, OrderItemModifier, MenuItem, ModifierOption, Table } = db;
 
 // GET: /api/admin/orders
@@ -64,16 +65,16 @@ export const updateOrderStatus = async (req, res) => {
         const orderId = req.params.orderId || req.params.id;
         const { status } = req.body;
         
-        console.log('🔵 updateOrderStatus called:', { orderId, status });
+        logger.info('updateOrderStatus called:', { orderId, status });
 
         // 1. Tìm đơn hàng
         const order = await Order.findByPk(orderId);
         if (!order) {
-            console.log('❌ Order not found:', orderId);
+            logger.warn('Order not found:', orderId);
             return res.status(404).json({ success: false, message: 'Không tìm thấy đơn hàng' });
         }
         
-        console.log('✅ Order found:', { id: order.id, currentStatus: order.status });
+        logger.info('Order found:', { id: order.id, currentStatus: order.status });
 
         // ==================================================================
         // 2. XỬ LÝ LOGIC TRẠNG THÁI (CORE LOGIC)
@@ -130,7 +131,7 @@ export const updateOrderStatus = async (req, res) => {
             } else {
                 // Nếu vẫn còn món đang nấu/chờ -> Giữ nguyên trạng thái cũ (ví dụ Preparing)
                 // Bếp chỉ update status từng món lẻ thôi.
-                console.log("Chưa xong hết các món, không update Order Status");
+                logger.info("Chưa xong hết các món, không update Order Status");
                 finalOrderStatus = order.status; // Giữ nguyên
             }
  
@@ -167,7 +168,7 @@ export const updateOrderStatus = async (req, res) => {
             } else {
                 // Nếu vẫn còn món (đang nấu, đang chờ, hoặc đang ready mà chưa kịp bưng hết)
                 // -> Giữ nguyên trạng thái cũ của Order (thường là 'ready' hoặc 'preparing')
-                console.log("ℹ️ Vẫn còn món chưa phục vụ hết -> Order status giữ nguyên.");
+                logger.info("Vẫn còn món chưa phục vụ hết -> Order status giữ nguyên.");
                 finalOrderStatus = order.status; 
             }
         }

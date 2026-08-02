@@ -12,6 +12,7 @@ import {
   updateMenuItemStatusSchema,
 } from "../../validators/item.validator.js";
 import { validate } from "../../middlewares/validator.js";
+import logger from "../../config/logger.js";
 
 const { MenuItemPhoto, sequelize } = db;
 
@@ -292,7 +293,7 @@ export const deleteItem = [
       // 2. Lấy category_id từ item
       const category_id = item.category_id;
 
-      console.log(`Deleting item ${id} from category ${category_id}`);
+      logger.info(`Deleting item ${id} from category ${category_id}`);
 
       // 3. Soft delete item
       await item.update({

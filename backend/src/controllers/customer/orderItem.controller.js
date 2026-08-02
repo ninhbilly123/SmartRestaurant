@@ -1,5 +1,6 @@
 import OrderItemService from "../../services/orderItem.service.js";
 import db from '../../models/index.js';
+import logger from "../../config/logger.js";
 const { Order, OrderItem, OrderItemModifier, MenuItem, ModifierOption, Table } = db;
 
 
@@ -49,7 +50,7 @@ export const createOrderItems = async (req, res) => {
 
 
         if (['ready', 'served'].includes(existingOrder.status)) {
-            console.log(`🔔 Đánh thức đơn hàng ${order_id}: ${existingOrder.status} -> pending`);
+            logger.info(`Đánh thức đơn hàng ${order_id}: ${existingOrder.status} -> pending`);
             existingOrder.status = 'pending';
             await existingOrder.save(); // Lưu status mới xuống DB
         }
@@ -91,7 +92,7 @@ export const createOrderItems = async (req, res) => {
             if (fullOrder.table) {
                 req.io.emit(`order_update_table_${fullOrder.table.id}`, fullOrder);
             }
-            console.log(`🔔 Socket sent: Bulk Add Items for Table ${fullOrder.table?.table_number}`);
+            logger.info(`Socket sent: Bulk Add Items for Table ${fullOrder.table?.table_number}`);
         }
 
         res.status(201).json({

@@ -1,11 +1,10 @@
 // src/services/orderHistory.service.js
 import Order from "../models/order.js";
 import db from '../models/index.js';
+import logger from "../config/logger.js";
 
 const OrderService = {
   async createOrder({ customer_id, table_id, total_amount, items, note }) {
-    console.log("🚀 Start creating full order...");
-    
     // 1. Khởi tạo Transaction
     const transaction = await db.sequelize.transaction();
     let calculatedTotal = 0; // Biến tính tổng tiền Backend
@@ -69,7 +68,7 @@ const OrderService = {
 
       // D. Lưu tất cả xuống DB
       await transaction.commit();
-      console.log(`✅ Order created successfully ID: ${newOrder.id}. Total: ${calculatedTotal}`);
+      logger.info(`Order created successfully ID: ${newOrder.id}. Total: ${calculatedTotal}`);
 
       // E. Trả về dữ liệu (Dùng đúng hàm bạn yêu cầu)
       // Lưu ý: Nếu hàm này bị lỗi, Catch bên dưới sẽ bắt được, 
@@ -81,10 +80,10 @@ const OrderService = {
       // Chỉ rollback nếu transaction chưa kết thúc (chưa commit)
       if (!transaction.finished) {
           await transaction.rollback();
-          console.log("Reverted transaction due to error.");
+          logger.warn("Reverted transaction due to error.");
       }
       
-      console.error("❌ Error creating full order:", error.message);
+      logger.error("Error creating full order:", error.message);
       throw error;
     }
   },
@@ -105,7 +104,7 @@ const OrderService = {
 
       return orders;
     } catch (error) {
-      console.error("OrderService: Error getting orders:", error.message);
+      logger.error("OrderService: Error getting orders:", error.message);
       throw error;
     }
   },
@@ -117,8 +116,6 @@ const OrderService = {
         const whereClause = customerId 
           ? { customer_id: customerId, id: orderId }
           : { id: orderId };
-
-        console.log("🔍 [SERVICE DEBUG] getOrderById where:", whereClause);
 
         const order = await Order.findOne({
           where: whereClause,
@@ -144,10 +141,9 @@ const OrderService = {
           ],
         });
 
-        console.log("📦 [SERVICE DEBUG] Order found:", order ? `ID ${order.id}, status: ${order.status}` : "null");
         return order;
       } catch (error) {
-        console.error("OrderService: Error getting order details:", error.message);
+        logger.error("OrderService: Error getting order details:", error.message);
         throw error;
       }
     },

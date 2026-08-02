@@ -1,6 +1,7 @@
 // src/controllers/restaurant/kitchen.controller.js
 import db from "../../models/index.js";
 import { Op } from "sequelize";
+import logger from "../../config/logger.js";
 const { Order, OrderItem, Table, MenuItem, OrderItemModifier, ModifierOption, Sequelize } = db;
 
 
@@ -156,7 +157,7 @@ export const updateOrderItemStatus = async (req, res) => {
             // CASE A: Tất cả đã xong -> Lên đời 'ready'
             // (Chỉ lên khi Order chưa đóng và chưa ready)
             if (allItemsDone && !['ready', 'served', 'completed'].includes(order.status)) {
-                console.log(`✅ Order ${order.id} tự động chuyển sang READY`);
+                logger.info(`Order ${order.id} tự động chuyển sang READY`);
                 order.status = 'ready';
                 await order.save();
             }
@@ -165,7 +166,7 @@ export const updateOrderItemStatus = async (req, res) => {
                 // Tình huống 1: Đang 'ready' mà bị lùi lại (do bấm nhầm/thêm món)
                 // Tình huống 2: Đang 'confirmed'/'pending' mà Bếp bắt đầu nấu món đầu tiên (QUAN TRỌNG)
                 if (order.status === 'ready' || (hasPreparingItem && ['pending', 'confirmed'].includes(order.status))) {
-                     console.log(`👨‍🍳 Order ${order.id} cập nhật trạng thái PREPARING`);
+                     logger.info(`Order ${order.id} cập nhật trạng thái PREPARING`);
                      order.status = 'preparing';
                      await order.save();
                 }

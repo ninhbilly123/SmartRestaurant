@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import PDFDocument from "pdfkit";
 import archiver from "archiver";
 import Table from "../models/table.js";
+import env from "../config/env.js";
 
 /**
  * QR Code Service
@@ -16,9 +17,6 @@ export class QRService {
 	 * @returns {string} - JWT token
 	 */
 	static generateToken(tableId, restaurantId = "default-restaurant") {
-		const secret = process.env.JWT_SECRET || "your-secret-key-change-this";
-		const expiresIn = process.env.QR_TOKEN_EXPIRES || "365d"; // Token có thể dùng lâu dài
-
 		const payload = {
 			tableId,
 			restaurantId,
@@ -26,7 +24,7 @@ export class QRService {
 			type: "qr_table_access",
 		};
 
-		return jwt.sign(payload, secret, { expiresIn });
+		return jwt.sign(payload, env.jwt.secret, { expiresIn: env.jwt.qrExpiresIn });
 	}
 
 	/**
@@ -36,9 +34,7 @@ export class QRService {
 	 */
 	static verifyToken(token) {
 		try {
-			const secret =
-				process.env.JWT_SECRET || "your-secret-key-change-this";
-			return jwt.verify(token, secret);
+			return jwt.verify(token, env.jwt.secret);
 		} catch (error) {
 			throw new Error("Invalid or expired QR code token");
 		}
@@ -51,7 +47,7 @@ export class QRService {
 	 * @returns {string} - URL để encode vào QR code
 	 */
 	static generateQRUrl(tableId, token) {
-		const baseUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+		const baseUrl = env.cors.frontendUrl;
 		return `${baseUrl}/menu?table=${tableId}&token=${token}`;
 	}
 

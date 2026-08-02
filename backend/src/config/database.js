@@ -1,19 +1,15 @@
 import { Sequelize } from 'sequelize';
-import dotenv from 'dotenv';
+import env from './env.js';
+import logger from './logger.js';
 
-dotenv.config();
-
-// Kiểm tra môi trường
-const isProduction = process.env.NODE_ENV === 'production';
-
-console.log(`Initializing database connection for ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'}...`);
+logger.info(`Initializing database connection for ${env.isProduction ? 'PRODUCTION' : 'DEVELOPMENT'}...`);
 
 // Khởi tạo Sequelize
 let sequelize;
 
-if (isProduction && process.env.DATABASE_URL) {
+if (env.isProduction && env.database.url) {
   // Production: Dùng DATABASE_URL
-  sequelize = new Sequelize(process.env.DATABASE_URL, {
+  sequelize = new Sequelize(env.database.url, {
     dialect: 'postgres',
     dialectOptions: {
       ssl: {
@@ -32,12 +28,12 @@ if (isProduction && process.env.DATABASE_URL) {
 } else {
   // Development: Dùng separate credentials
   sequelize = new Sequelize(
-    process.env.DB_NAME || 'table_management',
-    process.env.DB_USER || 'postgres',
-    process.env.DB_PASSWORD || 'your_password',
+    env.database.name,
+    env.database.user,
+    env.database.password,
     {
-      host: process.env.DB_HOST || 'localhost',
-      port: process.env.DB_PORT || 5432,
+      host: env.database.host,
+      port: env.database.port,
       dialect: 'postgres',
       logging: false,
       pool: {
@@ -54,23 +50,18 @@ if (isProduction && process.env.DATABASE_URL) {
 const connectDB = async () => {
   try {
     await sequelize.authenticate();
-    console.log('✅ Database connected successfully!');
-    if (isProduction) {
-      console.log('SSL Configuration: require=true, rejectUnauthorized=false');
+    logger.info('Database connected successfully');
+    if (env.isProduction) {
+      logger.info('SSL Configuration: require=true, rejectUnauthorized=false');
     } else {
-      console.log(`Connected to: ${process.env.DB_NAME}@${process.env.DB_HOST}:${process.env.DB_PORT}`);
+      logger.info(`Connected to: ${env.database.name}@${env.database.host}:${env.database.port}`);
     }
     return sequelize;
   } catch (error) {
-    console.error('❌ Database connection failed:', error.message);
+    logger.error('Database connection failed:', error.message);
     throw error;
   }
 };
 
-// Kết nối
-connectDB().catch(err => {
-  console.error('FATAL: Cannot connect to database:', err.message);
-  console.error('Please check your .env file and database configuration');
-});
-
+export { connectDB };
 export default sequelize;

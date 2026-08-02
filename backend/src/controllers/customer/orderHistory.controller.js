@@ -1,6 +1,7 @@
 import OrderService from "../../services/orderHistory.service.js";
 
 import { createOrderSchema } from "../../validators/order.validation.js";
+import logger from "../../config/logger.js";
 
 
 export const createOrder = async (req, res) => {
@@ -35,7 +36,7 @@ export const createOrder = async (req, res) => {
             status: 'pending'
         });
         
-        console.log(`🔔 Socket sent: New Order for Table ${value.table_id}`);
+        logger.info(`Socket sent: New Order for Table ${value.table_id}`);
     }
 
     return res.status(201).json({
