@@ -50,8 +50,11 @@ const env = {
   },
 
   email: {
-    sendgridApiKey: process.env.SENDGRID_API_KEY || "",
-    sendgridFrom: process.env.SENDGRID_FROM || process.env.EMAIL_FROM || "",
+    user: process.env.EMAIL_USER || "",
+    password: process.env.EMAIL_PASSWORD || "",
+    from: process.env.EMAIL_FROM || process.env.EMAIL_USER || "",
+    host: process.env.EMAIL_HOST || "smtp.gmail.com",
+    port: parseNumber(process.env.EMAIL_PORT, 587),
   },
 
   momo: {
