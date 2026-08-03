@@ -12,6 +12,14 @@ const parseNumber = (value, defaultValue) => {
   return Number.isFinite(parsed) ? parsed : defaultValue;
 };
 
+const parseList = (value, defaultValue = []) => {
+  if (!value) return defaultValue;
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+};
+
 const required = (name) => {
   const value = process.env[name];
   if (!value) {
@@ -22,6 +30,9 @@ const required = (name) => {
 
 const nodeEnv = process.env.NODE_ENV || "development";
 const isProduction = nodeEnv === "production";
+const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+const adminFrontendUrl = process.env.ADMIN_FRONTEND_URL || "http://localhost:3001";
+const backendUrl = process.env.BACKEND_URL || "http://localhost:5000";
 
 const env = {
   nodeEnv,
@@ -45,8 +56,13 @@ const env = {
   },
 
   cors: {
-    frontendUrl: process.env.FRONTEND_URL || "http://localhost:5173",
-    backendUrl: process.env.BACKEND_URL || "http://localhost:5000",
+    frontendUrl,
+    adminFrontendUrl,
+    backendUrl,
+    allowedOrigins: parseList(process.env.CORS_ORIGINS, [
+      frontendUrl,
+      adminFrontendUrl,
+    ]),
   },
 
   email: {
