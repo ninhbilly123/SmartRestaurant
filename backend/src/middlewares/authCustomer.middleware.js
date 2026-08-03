@@ -1,55 +1,73 @@
-import Customer from '../models/customer.js';
-import customerService from '../services/customer.service.js';
-import logger from '../config/logger.js';
+import Customer from "../models/customer.js";
+import logger from "../config/logger.js";
+import customerService from "../services/customer.service.js";
 
-const authCustomer = async (req, res, next) => {
+export const optionalCustomerAuth = async (req, res, next) => {
   try {
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    
-    //Trường hợp chưa đăng nhập
+    const token = req.headers.authorization?.replace("Bearer ", "");
+
     if (!token) {
-      req.user = null; 
-      return next(); 
+      req.user = null;
+      req.customer = null;
+      return next();
     }
 
-    //Trường hợp có đăng nhập
     try {
       const decoded = customerService.verifyToken(token);
       const customerUid = decoded.uid;
-      
+
       if (!customerUid) {
         req.user = null;
+        req.customer = null;
         return next();
       }
 
       const customer = await Customer.findByPk(customerUid);
-      
-      if (customer) {
-        req.user = {
-          uid: customer.uid,
-          id: customer.uid,
-          username: customer.username,
-          email: customer.email,
-          role: "customer"
-        };
-      } else {
-        req.user = null; 
+
+      if (!customer) {
+        req.user = null;
+        req.customer = null;
+        return next();
       }
 
-    } catch (tokenError) {
-      logger.warn("Token khách hàng lỗi hoặc hết hạn, xử lý như khách vãng lai");
-      req.user = null;
-    }
+      const currentCustomer = {
+        uid: customer.uid,
+        id: customer.uid,
+        username: customer.username,
+        full_name: customer.full_name,
+        email: customer.email,
+        role: "customer",
+      };
 
-    next();
-    
+      req.user = currentCustomer;
+      req.customer = currentCustomer;
+      return next();
+    } catch (tokenError) {
+      logger.warn("Customer token invalid or expired; continuing as guest");
+      req.user = null;
+      req.customer = null;
+      return next();
+    }
   } catch (error) {
-    logger.error("Lỗi hệ thống tại Auth middleware:", error.message);
-    return res.status(500).json({ 
-      success: false, 
-      error: "Lỗi hệ thống xác thực" 
+    logger.error("Customer auth middleware error:", error.message);
+    return res.status(500).json({
+      success: false,
+      error: "Lỗi hệ thống xác thực",
     });
   }
 };
 
-export default authCustomer;
+export const requireCustomerAuth = async (req, res, next) => {
+  return optionalCustomerAuth(req, res, () => {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: "Vui lòng đăng nhập để tiếp tục",
+      });
+    }
+
+    return next();
+  });
+};
+
+export default optionalCustomerAuth;

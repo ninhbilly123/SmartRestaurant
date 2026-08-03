@@ -2,7 +2,7 @@
 import express from "express";
 import { authorizeRoles } from "../../middlewares/authorizeRoles.middleware.js";
 import tableAdminRoutes from "./tableAdmin.routes.js";
-import menuRoutes from "./menu.routes.js";
+import menuRoutes from "./menu/index.js";
 import menuItemPhotoRoutes from "./menuItemPhoto.routes.js";
 import orderRoutes from './order.routes.js';
 import kitchenRoutes from "./kitchen.routes.js";

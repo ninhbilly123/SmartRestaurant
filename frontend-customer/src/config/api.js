@@ -1,5 +1,6 @@
 import axios from "axios";
 import { getCustomerToken } from "../utils/customerAuth";
+import { getTableSession } from "../utils/tableSession";
 
 const API_HOST = (import.meta.env.VITE_API_BASE_URL || "http://localhost:5000")
   .replace(/\/api\/?$/, "")
@@ -23,7 +24,20 @@ const customerApi = axios.create({
 
 const setupInterceptors = (instance) => {
   instance.interceptors.request.use(
-    (config) => config,
+    (config) => {
+      const { tableId, token } = getTableSession();
+      config.headers = config.headers || {};
+
+      if (tableId) {
+        config.headers["x-table-id"] = tableId;
+      }
+
+      if (token) {
+        config.headers["x-qr-token"] = token;
+      }
+
+      return config;
+    },
     (error) => {
       return Promise.reject(error);
     }

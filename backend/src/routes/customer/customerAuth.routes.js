@@ -16,7 +16,7 @@ import {
   updateAvatar,
   deleteAvatar
 } from "../../controllers/customer/customerAuth.Controller.js";
-import authCustomer from "../../middlewares/authCustomer.middleware.js";
+import { requireCustomerAuth } from "../../middlewares/authCustomer.middleware.js";
 import { uploadAvatar, handleAvatarUploadErrors } from "../../middlewares/uploadAvatar.middleware.js"; // IMPORT MIDDLEWARE MỚI
 
 const router = express.Router();
@@ -51,27 +51,27 @@ router.post("/forgot-password/reset", resetPassword);
 // ========== PROTECTED ROUTES (cần auth) ==========
 
 // Lấy thông tin cá nhân
-router.get("/me", authCustomer, getMe);
+router.get("/me", requireCustomerAuth, getMe);
 
 // Cập nhật thông tin cá nhân 
-router.put("/me", authCustomer, updateMe);
+router.put("/me", requireCustomerAuth, updateMe);
 
 // Cập nhật profile (chỉ username và phone)
-router.put("/profile", authCustomer, updateProfile);
+router.put("/profile", requireCustomerAuth, updateProfile);
 
 // Đổi mật khẩu (cần mật khẩu cũ)
-router.put("/password", authCustomer, changePassword);
+router.put("/password", requireCustomerAuth, changePassword);
 
 // ========== AVATAR UPLOAD ROUTE ==========
 // Cập nhật avatar - Upload file lên Cloudinary
 router.put("/avatar", 
-  authCustomer,
+  requireCustomerAuth,
   uploadAvatar,
   handleAvatarUploadErrors,
   updateAvatar
 );
 
 // route DELETE avatar
-router.delete("/avatar", authCustomer, deleteAvatar);
+router.delete("/avatar", requireCustomerAuth, deleteAvatar);
 
 export default router;
