@@ -1,80 +1,15 @@
 import Order from "../models/order.js";
-import Table from "../models/table.js";
-import QRService from "../services/qr.service.js";
-
-const getRequestTableId = (req) =>
-  req.headers["x-table-id"] ||
-  req.query.table ||
-  req.query.table_id ||
-  req.body.table_id;
-
-const getRequestQRToken = (req) =>
-  req.headers["x-qr-token"] ||
-  req.query.token ||
-  req.body.qr_token ||
-  req.body.token;
-
-const verifyTableToken = async (tableId, token) => {
-  if (!tableId || !token) {
-    return {
-      ok: false,
-      status: 401,
-      message: "Thiếu thông tin bàn hoặc QR token",
-    };
-  }
-
-  let decoded;
-  try {
-    decoded = QRService.verifyToken(token);
-  } catch (error) {
-    return {
-      ok: false,
-      status: 401,
-      message: "Mã QR không hợp lệ hoặc đã hết hạn",
-    };
-  }
-
-  if (String(decoded.tableId) !== String(tableId)) {
-    return {
-      ok: false,
-      status: 403,
-      message: "QR token không khớp với bàn",
-    };
-  }
-
-  const table = await Table.findByPk(tableId);
-  if (!table) {
-    return {
-      ok: false,
-      status: 404,
-      message: "Không tìm thấy bàn",
-    };
-  }
-
-  if (table.status !== "active") {
-    return {
-      ok: false,
-      status: 403,
-      message: "Bàn hiện không hoạt động",
-    };
-  }
-
-  if (table.qr_token !== token) {
-    return {
-      ok: false,
-      status: 401,
-      message: "Mã QR cũ không còn hiệu lực",
-    };
-  }
-
-  return { ok: true, table };
-};
+import {
+  getRequestQRToken,
+  getRequestTableId,
+  verifyTableAccessToken,
+} from "./qrAccess.middleware.js";
 
 export const requireTableAccess = async (req, res, next) => {
   try {
     const tableId = getRequestTableId(req);
     const token = getRequestQRToken(req);
-    const result = await verifyTableToken(tableId, token);
+    const result = await verifyTableAccessToken(tableId, token);
 
     if (!result.ok) {
       return res.status(result.status).json({
@@ -121,7 +56,7 @@ export const requireOrderAccess = (getOrderId = (req) => req.params.orderId) => 
       }
 
       const token = getRequestQRToken(req);
-      const result = await verifyTableToken(order.table_id, token);
+      const result = await verifyTableAccessToken(order.table_id, token);
 
       if (!result.ok) {
         return res.status(result.status).json({

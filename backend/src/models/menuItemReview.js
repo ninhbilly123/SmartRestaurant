@@ -1,6 +1,5 @@
-// src/models/menuItemReview.js
-import { DataTypes, Model } from 'sequelize';
-import sequelize from '../config/database.js';
+import { DataTypes, Model } from "sequelize";
+import sequelize from "../config/database.js";
 
 class MenuItemReview extends Model {}
 
@@ -15,24 +14,24 @@ MenuItemReview.init(
       type: DataTypes.UUID,
       allowNull: false,
       references: {
-        model: 'menu_items',
-        key: 'id',
+        model: "menu_items",
+        key: "id",
       },
     },
     customer_id: {
       type: DataTypes.UUID,
       allowNull: true,
       references: {
-        model: 'customers',
-        key: 'uid',
+        model: "customers",
+        key: "uid",
       },
     },
     order_id: {
       type: DataTypes.UUID,
       allowNull: true,
       references: {
-        model: 'orders',
-        key: 'id',
+        model: "orders",
+        key: "id",
       },
     },
     rating: {
@@ -63,41 +62,42 @@ MenuItemReview.init(
       type: DataTypes.TEXT,
       allowNull: true,
     },
-    created_at: {
-      type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW,
-    },
-    updated_at: {
-      type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW,
-    },
   },
   {
     sequelize,
-    tableName: 'menu_item_reviews',
-    modelName: 'MenuItemReview',
-    timestamps: false,
+    modelName: "MenuItemReview",
+    tableName: "menu_item_reviews",
+    timestamps: true,
+    createdAt: "created_at",
+    updatedAt: "updated_at",
     underscored: true,
+    indexes: [
+      { fields: ["menu_item_id"] },
+      { fields: ["customer_id"] },
+      { fields: ["order_id"] },
+      {
+        unique: true,
+        fields: ["customer_id", "order_id", "menu_item_id"],
+      },
+    ],
   }
 );
 
 MenuItemReview.associate = (models) => {
-  // Belongs to Menu Item
   MenuItemReview.belongsTo(models.MenuItem, {
-    foreignKey: 'menu_item_id',
-    as: 'menu_item',
+    foreignKey: "menu_item_id",
+    as: "menu_item",
   });
 
-  // Belongs to Customer (optional, can be anonymous)
   MenuItemReview.belongsTo(models.Customer, {
-    foreignKey: 'customer_id',
-    as: 'customer',
+    foreignKey: "customer_id",
+    targetKey: "uid",
+    as: "customer",
   });
 
-  // Belongs to Order (for verified purchases)
   MenuItemReview.belongsTo(models.Order, {
-    foreignKey: 'order_id',
-    as: 'order',
+    foreignKey: "order_id",
+    as: "order",
   });
 };
 

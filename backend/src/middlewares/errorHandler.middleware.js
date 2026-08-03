@@ -11,13 +11,18 @@ export const notFoundHandler = (req, res) => {
 export const errorHandler = (err, req, res, next) => {
   if (res.headersSent) return next(err);
 
-  const statusCode = err.statusCode || 500;
+  const statusCode = err.statusCode || err.status || 500;
+  const message =
+    env.isProduction && statusCode >= 500
+      ? "Lỗi máy chủ"
+      : err.message || "Lỗi máy chủ";
+
   const payload = {
     success: false,
-    message: err.message || "Lỗi máy chủ",
+    message,
   };
 
-  if (err.details) {
+  if (err.details && (!env.isProduction || statusCode < 500)) {
     payload.details = err.details;
   }
 

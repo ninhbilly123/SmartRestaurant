@@ -1,45 +1,42 @@
-// src/models/index.js
-import sequelize from '../config/database.js';
+import sequelize from "../config/database.js";
 
-// 1. Import ĐẦY ĐỦ các model
-import User from './user.js';
-import Table from './table.js';
-import MenuCategory from './menuCategory.js';
-import MenuItem from './menuItem.js';
-import MenuItemPhoto from './menuItemPhoto.js';
-import ModifierGroup from './modifierGroup.js';
-import ModifierOption from './modifierOption.js';
-import MenuItemModifierGroup from './menuItemModifierGroup.js';
-import Order from './order.js';      
-import OrderItem from './orderItem.js'; 
+import Customer from "./customer.js";
+import MenuCategory from "./menuCategory.js";
+import MenuItem from "./menuItem.js";
+import MenuItemModifierGroup from "./menuItemModifierGroup.js";
+import MenuItemPhoto from "./menuItemPhoto.js";
+import MenuItemReview from "./menuItemReview.js";
+import ModifierGroup from "./modifierGroup.js";
+import ModifierOption from "./modifierOption.js";
+import Order from "./order.js";
+import OrderItem from "./orderItem.js";
 import OrderItemModifier from "./orderItemModifier.js";
-import MenuItemReview from './menuItemReview.js';
-import Customer from './customer.js';
+import Table from "./table.js";
+import User from "./user.js";
+import VerifiedEmail from "./verifiedEmail.js";
 
-// 2. Gom vào object db
 const db = {
   sequelize,
-  User,
-  Table,
+  Customer,
   MenuCategory,
   MenuItem,
+  MenuItemModifierGroup,
   MenuItemPhoto,
+  MenuItemReview,
   ModifierGroup,
   ModifierOption,
-  MenuItemModifierGroup,
-  Order,     
+  Order,
   OrderItem,
   OrderItemModifier,
-  MenuItemReview,
-  Customer,
+  Table,
+  User,
+  VerifiedEmail,
 };
 
-// 3. CHẠY VÒNG LẶP LIÊN KẾT (Magic Loop)
-Object.keys(db).forEach((modelName) => {
-  if (db[modelName].associate) {
-    db[modelName].associate(db);
+Object.values(db).forEach((model) => {
+  if (model?.associate) {
+    model.associate(db);
   }
 });
-
 
 export default db;

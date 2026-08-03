@@ -1,13 +1,20 @@
-import jwt from 'jsonwebtoken';
-import db from '../models/index.js';
-import env from '../config/env.js';
+import jwt from "jsonwebtoken";
+import db from "../models/index.js";
+import env from "../config/env.js";
+
+const getBearerToken = (authorizationHeader) => {
+  const [scheme, token] = authorizationHeader?.split(" ") || [];
+  return scheme?.toLowerCase() === "bearer" ? token : null;
+};
 
 export const verifyToken = async (req, res, next) => {
-  const tokenHeader = req.headers['authorization'];
-  // Token gửi lên dạng: "Bearer eyJhbGci..."
-  const token = tokenHeader && tokenHeader.split(' ')[1]; 
+  const token = getBearerToken(req.headers.authorization);
 
-  if (!token) return res.status(401).json({ message: "Chưa đăng nhập (Thiếu Token)" });
+  if (!token) {
+    return res.status(401).json({
+      message: "Chưa đăng nhập hoặc thiếu token",
+    });
+  }
 
   try {
     const decoded = jwt.verify(token, env.jwt.secret);
@@ -16,11 +23,15 @@ export const verifyToken = async (req, res, next) => {
     });
 
     if (!user) {
-      return res.status(401).json({ message: "Tài khoản không tồn tại hoặc đã bị xóa" });
+      return res.status(401).json({
+        message: "Tài khoản không tồn tại hoặc đã bị xóa",
+      });
     }
 
     if (user.is_active === false) {
-      return res.status(403).json({ message: "Tài khoản đã bị vô hiệu hóa" });
+      return res.status(403).json({
+        message: "Tài khoản đã bị vô hiệu hóa",
+      });
     }
 
     req.user = {
@@ -31,7 +42,9 @@ export const verifyToken = async (req, res, next) => {
     };
 
     return next();
-  } catch (err) {
-    return res.status(403).json({ message: "Token không hợp lệ hoặc hết hạn" });
+  } catch (error) {
+    return res.status(403).json({
+      message: "Token không hợp lệ hoặc đã hết hạn",
+    });
   }
 };

@@ -1,6 +1,15 @@
 import { DataTypes, Model } from "sequelize";
 import sequelize from "../config/database.js";
 
+const ORDER_ITEM_STATUSES = [
+  "pending",
+  "confirmed",
+  "preparing",
+  "ready",
+  "served",
+  "cancelled",
+];
+
 class OrderItem extends Model {}
 
 OrderItem.init(
@@ -13,75 +22,80 @@ OrderItem.init(
     order_id: {
       type: DataTypes.UUID,
       allowNull: false,
+      references: {
+        model: "orders",
+        key: "id",
+      },
     },
     menu_item_id: {
       type: DataTypes.UUID,
       allowNull: true,
+      references: {
+        model: "menu_items",
+        key: "id",
+      },
     },
     quantity: {
       type: DataTypes.INTEGER,
       allowNull: false,
       defaultValue: 1,
+      validate: {
+        min: 1,
+      },
     },
     price_at_order: {
       type: DataTypes.DECIMAL(12, 2),
       allowNull: false,
+      validate: {
+        min: 0,
+      },
     },
-
-    // --- CẬP NHẬT PHẦN NÀY ---
     status: {
-      type: DataTypes.ENUM(
-        'pending',    // Mới đặt
-        'confirmed',  // Waiter đã duyệt món này
-        'preparing',  // Bếp đang làm
-        'ready',      // Đã xong, chờ bưng
-        'served',     // Đã lên bàn
-        'cancelled'   // Hết món hoặc khách hủy
-        // ❌ KHÔNG CÓ 'payment' và 'completed' ở Item level
-        // Items kết thúc ở 'served', Order mới có 'payment'/'completed'
-      ),
-      defaultValue: 'pending',
-      allowNull: false
+      type: DataTypes.ENUM(...ORDER_ITEM_STATUSES),
+      defaultValue: "pending",
+      allowNull: false,
     },
-    // -------------------------
-    
     notes: {
       type: DataTypes.TEXT,
       allowNull: true,
     },
     reject_reason: {
-      type: DataTypes.TEXT, // Lưu lý do từ chối (VD: "Hết hàng", "Khách đổi ý")
+      type: DataTypes.TEXT,
       allowNull: true,
     },
   },
   {
     sequelize,
-    tableName: "order_items",
     modelName: "OrderItem",
-    timestamps: false, 
+    tableName: "order_items",
+    timestamps: false,
     underscored: true,
+    indexes: [
+      { fields: ["order_id"] },
+      { fields: ["menu_item_id"] },
+      { fields: ["status"] },
+    ],
   }
 );
 
 OrderItem.associate = (models) => {
-  // Thuộc về Order
-  OrderItem.belongsTo(models.Order, { 
-    foreignKey: 'order_id', 
-    as: 'order' 
+  OrderItem.belongsTo(models.Order, {
+    foreignKey: "order_id",
+    as: "order",
   });
 
-  // Thuộc về Menu Item (Món gốc)
-  OrderItem.belongsTo(models.MenuItem, { 
-    foreignKey: 'menu_item_id', 
-    as: 'menu_item',
-    constraints: false 
+  OrderItem.belongsTo(models.MenuItem, {
+    foreignKey: "menu_item_id",
+    as: "menu_item",
+    constraints: false,
   });
 
-  // Có nhiều Modifier (Topping)
   OrderItem.hasMany(models.OrderItemModifier, {
-    foreignKey: 'order_item_id',
-    as: 'modifiers'
+    foreignKey: "order_item_id",
+    as: "modifiers",
+    onDelete: "CASCADE",
   });
 };
 
+export { ORDER_ITEM_STATUSES };
 export default OrderItem;

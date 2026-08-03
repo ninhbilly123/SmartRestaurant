@@ -1,4 +1,4 @@
-const PAYMENT_METHODS = ["cash", "momo", "vnpay"];
+import { PAYMENT_METHODS } from "../models/order.js";
 
 export const validatePaymentMethod = (req, res, next) => {
   const { payment_method: paymentMethod } = req.body;

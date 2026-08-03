@@ -5,70 +5,84 @@ class VerifiedEmail extends Model {}
 
 VerifiedEmail.init(
   {
-    // CÁCH 1: Xóa id field để Sequelize tự động sử dụng id từ database
-    // Không định nghĩa id field - Sequelize sẽ tự động nhận id từ table
-    
     customer_uid: {
       type: DataTypes.UUID,
       allowNull: false,
       references: {
-        model: 'customers',
-        key: 'uid'
+        model: "customers",
+        key: "uid",
       },
-      onDelete: 'CASCADE',
-      onUpdate: 'CASCADE'
+      onDelete: "CASCADE",
+      onUpdate: "CASCADE",
     },
     email: {
       type: DataTypes.STRING(100),
       allowNull: false,
       validate: {
-        isEmail: true
-      }
+        isEmail: true,
+      },
     },
-
     auth_method: {
-      type: DataTypes.ENUM('email', 'google'),
-      allowNull: true,
-      defaultValue: 'email',
+      type: DataTypes.ENUM("email", "google"),
+      allowNull: false,
+      defaultValue: "email",
     },
-    
     otp_code: {
       type: DataTypes.STRING(6),
-      allowNull: true
+      allowNull: true,
     },
     otp_expires: {
       type: DataTypes.DATE,
-      allowNull: true
+      allowNull: true,
     },
     verification_token: {
       type: DataTypes.STRING(255),
-      allowNull: true
+      allowNull: true,
     },
     is_verified: {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
-      allowNull: false
+      allowNull: false,
     },
     verified_at: {
       type: DataTypes.DATE,
-      allowNull: true
-    }
+      allowNull: true,
+    },
   },
   {
     sequelize,
+    modelName: "VerifiedEmail",
     tableName: "verified_emails",
     timestamps: true,
     createdAt: "created_at",
     updatedAt: "updated_at",
+    indexes: [
+      {
+        fields: ["customer_uid"],
+      },
+      {
+        fields: ["email", "auth_method"],
+      },
+      {
+        fields: ["otp_code"],
+      },
+    ],
     hooks: {
-      beforeCreate: (verifiedEmail) => {
+      beforeValidate: (verifiedEmail) => {
         if (verifiedEmail.otp_code) {
-          // Đảm bảo OTP là 6 chữ số
-          verifiedEmail.otp_code = verifiedEmail.otp_code.padStart(6, '0');
+          verifiedEmail.otp_code = verifiedEmail.otp_code.padStart(6, "0");
         }
-      }
-    }
+      },
+    },
   }
 );
+
+VerifiedEmail.associate = (models) => {
+  VerifiedEmail.belongsTo(models.Customer, {
+    foreignKey: "customer_uid",
+    targetKey: "uid",
+    as: "customer",
+  });
+};
 
 export default VerifiedEmail;

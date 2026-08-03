@@ -1,6 +1,5 @@
-// src/models/menuItem.js
-import { DataTypes, Model } from 'sequelize';
-import sequelize from '../config/database.js';
+import { DataTypes, Model } from "sequelize";
+import sequelize from "../config/database.js";
 
 class MenuItem extends Model {}
 
@@ -11,13 +10,12 @@ MenuItem.init(
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
-  
     category_id: {
       type: DataTypes.UUID,
       allowNull: false,
       references: {
-        model: 'menu_categories',
-        key: 'id',
+        model: "menu_categories",
+        key: "id",
       },
     },
     name: {
@@ -48,10 +46,10 @@ MenuItem.init(
     },
     status: {
       type: DataTypes.STRING(50),
-      defaultValue: 'available',
+      defaultValue: "available",
       validate: {
-        isIn: [['available', 'unavailable', 'sold_out']]  
-      }
+        isIn: [["available", "unavailable", "sold_out"]],
+      },
     },
     is_chef_recommended: {
       type: DataTypes.BOOLEAN,
@@ -64,24 +62,15 @@ MenuItem.init(
   },
   {
     sequelize,
-    tableName: 'menu_items',
+    tableName: "menu_items",
     timestamps: true,
-    createdAt: 'created_at',
-    updatedAt: 'updated_at',
+    createdAt: "created_at",
+    updatedAt: "updated_at",
     indexes: [
-  
-      {
-        fields: ['category_id'],
-      },
-      {
-        fields: ['status'],
-      },
-      {
-        fields: ['is_chef_recommended'],
-      },
-      {
-        fields: ['is_deleted'],
-      },
+      { fields: ["category_id"] },
+      { fields: ["status"] },
+      { fields: ["is_chef_recommended"] },
+      { fields: ["is_deleted"] },
     ],
     defaultScope: {
       where: {
@@ -92,26 +81,32 @@ MenuItem.init(
 );
 
 MenuItem.associate = (models) => {
-  MenuItem.hasMany(models.OrderItem, { 
-    foreignKey: 'menu_item_id' 
+  MenuItem.hasMany(models.OrderItem, {
+    foreignKey: "menu_item_id",
+    as: "orderItems",
   });
-  
+
   MenuItem.belongsTo(models.MenuCategory, {
-    foreignKey: 'category_id',
-    as: 'category',
+    foreignKey: "category_id",
+    as: "category",
   });
-  
+
   MenuItem.hasMany(models.MenuItemPhoto, {
-    foreignKey: 'menu_item_id',
-    as: 'photos',
-    onDelete: 'CASCADE',
+    foreignKey: "menu_item_id",
+    as: "photos",
+    onDelete: "CASCADE",
   });
-  
+
+  MenuItem.hasMany(models.MenuItemReview, {
+    foreignKey: "menu_item_id",
+    as: "reviews",
+  });
+
   MenuItem.belongsToMany(models.ModifierGroup, {
     through: models.MenuItemModifierGroup,
-    foreignKey: 'menu_item_id',
-    otherKey: 'group_id',
-    as: 'modifierGroups',
+    foreignKey: "menu_item_id",
+    otherKey: "group_id",
+    as: "modifierGroups",
   });
 };
 

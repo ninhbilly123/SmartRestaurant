@@ -2,31 +2,37 @@ import Customer from "../models/customer.js";
 import logger from "../config/logger.js";
 import customerService from "../services/customer.service.js";
 
+const getBearerToken = (authorizationHeader) => {
+  const [scheme, token] = authorizationHeader?.split(" ") || [];
+  return scheme?.toLowerCase() === "bearer" ? token : null;
+};
+
+const clearCustomerAuth = (req) => {
+  req.user = null;
+  req.customer = null;
+};
+
 export const optionalCustomerAuth = async (req, res, next) => {
   try {
-    const token = req.headers.authorization?.replace("Bearer ", "");
+    const token = getBearerToken(req.headers.authorization);
 
     if (!token) {
-      req.user = null;
-      req.customer = null;
+      clearCustomerAuth(req);
       return next();
     }
 
     try {
       const decoded = customerService.verifyToken(token);
-      const customerUid = decoded.uid;
 
-      if (!customerUid) {
-        req.user = null;
-        req.customer = null;
+      if (!decoded.uid) {
+        clearCustomerAuth(req);
         return next();
       }
 
-      const customer = await Customer.findByPk(customerUid);
+      const customer = await Customer.findByPk(decoded.uid);
 
       if (!customer) {
-        req.user = null;
-        req.customer = null;
+        clearCustomerAuth(req);
         return next();
       }
 
@@ -34,7 +40,7 @@ export const optionalCustomerAuth = async (req, res, next) => {
         uid: customer.uid,
         id: customer.uid,
         username: customer.username,
-        full_name: customer.full_name,
+        full_name: customer.full_name || customer.username,
         email: customer.email,
         role: "customer",
       };
@@ -44,12 +50,11 @@ export const optionalCustomerAuth = async (req, res, next) => {
       return next();
     } catch (tokenError) {
       logger.warn("Customer token invalid or expired; continuing as guest");
-      req.user = null;
-      req.customer = null;
+      clearCustomerAuth(req);
       return next();
     }
   } catch (error) {
-    logger.error("Customer auth middleware error:", error.message);
+    logger.error("Customer auth middleware error:", error);
     return res.status(500).json({
       success: false,
       error: "Lỗi hệ thống xác thực",
@@ -59,7 +64,7 @@ export const optionalCustomerAuth = async (req, res, next) => {
 
 export const requireCustomerAuth = async (req, res, next) => {
   return optionalCustomerAuth(req, res, () => {
-    if (!req.user) {
+    if (!req.customer) {
       return res.status(401).json({
         success: false,
         error: "Vui lòng đăng nhập để tiếp tục",

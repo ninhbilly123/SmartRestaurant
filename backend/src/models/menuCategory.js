@@ -1,6 +1,5 @@
-// src/models/menuCategory.js
-import { DataTypes, Model } from 'sequelize';
-import sequelize from '../config/database.js';
+import { DataTypes, Model } from "sequelize";
+import sequelize from "../config/database.js";
 
 class MenuCategory extends Model {}
 
@@ -11,7 +10,6 @@ MenuCategory.init(
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
-    
     name: {
       type: DataTypes.STRING(50),
       allowNull: false,
@@ -31,33 +29,28 @@ MenuCategory.init(
       },
     },
     status: {
-      type: DataTypes.ENUM('active', 'inactive'),
-      defaultValue: 'active',
+      type: DataTypes.ENUM("active", "inactive"),
+      defaultValue: "active",
     },
   },
   {
     sequelize,
-    tableName: 'menu_categories',
+    tableName: "menu_categories",
     timestamps: true,
-    createdAt: 'created_at',
-    updatedAt: 'updated_at',
+    createdAt: "created_at",
+    updatedAt: "updated_at",
     indexes: [
-      {
-        fields: ['status'],
-      },
-      {
-        fields: ['display_order'],
-      },
+      { fields: ["status"] },
+      { fields: ["display_order"] },
     ],
   }
 );
 
 MenuCategory.associate = (models) => {
-  
   MenuCategory.hasMany(models.MenuItem, {
-    foreignKey: 'category_id',
-    as: 'menuItems',
-    onDelete: 'CASCADE',
+    foreignKey: "category_id",
+    as: "menuItems",
+    onDelete: "CASCADE",
   });
 };
 

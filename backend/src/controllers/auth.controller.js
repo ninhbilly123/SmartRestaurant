@@ -152,7 +152,7 @@ export const updateUser = async (req, res) => {
         if (!userToUpdate) return res.status(404).json({ message: "User not found" });
 
         // Logic quyền: Chỉ được sửa bản thân HOẶC cấp trên sửa cấp dưới
-        const isSelf = currentUser.id === parseInt(id);
+        const isSelf = String(currentUser.id) === String(id);
         const isSuperAdminEditingAdmin = currentUser.role === 'super_admin' && userToUpdate.role === 'admin';
         const isAdminEditingStaff = currentUser.role === 'admin' && ['waiter', 'kitchen'].includes(userToUpdate.role);
 

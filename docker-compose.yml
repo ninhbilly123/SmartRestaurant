@@ -16,27 +16,5 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-
-  backend:
-    build:
-      context: ./backend
-    container_name: smartrestaurant-backend
-    restart: unless-stopped
-    env_file:
-      - ./backend/.env
-    environment:
-      DB_HOST: postgres
-      FRONTEND_URL: http://localhost:5173
-    ports:
-      - "5000:5000"
-    volumes:
-      - ./backend:/app
-      - backend_node_modules:/app/node_modules
-    depends_on:
-      postgres:
-        condition: service_healthy
-    command: sh -c "npm run seed:admin && npm run dev"
-
 volumes:
   postgres_data:
-  backend_node_modules:

@@ -1,6 +1,5 @@
-// src/models/modifierOption.js
-import { DataTypes, Model } from 'sequelize';
-import sequelize from '../config/database.js';
+import { DataTypes, Model } from "sequelize";
+import sequelize from "../config/database.js";
 
 class ModifierOption extends Model {}
 
@@ -15,8 +14,8 @@ ModifierOption.init(
       type: DataTypes.UUID,
       allowNull: false,
       references: {
-        model: 'modifier_groups',
-        key: 'id',
+        model: "modifier_groups",
+        key: "id",
       },
     },
     name: {
@@ -34,31 +33,32 @@ ModifierOption.init(
       },
     },
     status: {
-      type: DataTypes.ENUM('active', 'inactive'),
-      defaultValue: 'active',
+      type: DataTypes.ENUM("active", "inactive"),
+      defaultValue: "active",
     },
   },
   {
     sequelize,
-    tableName: 'modifier_options',
+    tableName: "modifier_options",
     timestamps: true,
-    createdAt: 'created_at',
+    createdAt: "created_at",
     updatedAt: false,
     indexes: [
-      {
-        fields: ['group_id'],
-      },
-      {
-        fields: ['status'],
-      },
+      { fields: ["group_id"] },
+      { fields: ["status"] },
     ],
   }
 );
 
 ModifierOption.associate = (models) => {
   ModifierOption.belongsTo(models.ModifierGroup, {
-    foreignKey: 'group_id',
-    as: 'group',
+    foreignKey: "group_id",
+    as: "group",
+  });
+
+  ModifierOption.hasMany(models.OrderItemModifier, {
+    foreignKey: "modifier_option_id",
+    as: "orderItemModifiers",
   });
 };
 

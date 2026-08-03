@@ -30,7 +30,9 @@ OrderItemModifier.init(
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
       defaultValue: 0,
-      comment: "Giá modifier tại thời điểm đặt đơn (Snapshot)"
+      validate: {
+        min: 0,
+      },
     },
     created_at: {
       type: DataTypes.DATE,
@@ -44,27 +46,21 @@ OrderItemModifier.init(
     timestamps: false,
     underscored: true,
     indexes: [
-      {
-        fields: ["order_item_id"],
-      },
-      {
-        fields: ["modifier_option_id"],
-      },
+      { fields: ["order_item_id"] },
+      { fields: ["modifier_option_id"] },
     ],
   }
 );
 
 OrderItemModifier.associate = (models) => {
-  // Thuộc về món trong đơn
   OrderItemModifier.belongsTo(models.OrderItem, {
-    foreignKey: 'order_item_id',
-    as: 'order_item'
+    foreignKey: "order_item_id",
+    as: "order_item",
   });
 
-  // Liên kết với Option gốc để lấy tên
   OrderItemModifier.belongsTo(models.ModifierOption, {
-    foreignKey: 'modifier_option_id',
-    as: 'modifier_option'
+    foreignKey: "modifier_option_id",
+    as: "modifier_option",
   });
 };
 

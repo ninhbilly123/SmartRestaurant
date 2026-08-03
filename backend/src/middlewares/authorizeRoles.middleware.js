@@ -8,6 +8,6 @@ export const authorizeRoles = (...allowedRoles) => {
       });
     }
 
-    next();
+    return next();
   };
 };
