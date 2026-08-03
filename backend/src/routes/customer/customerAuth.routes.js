@@ -15,7 +15,7 @@ import {
   changePassword,
   updateAvatar,
   deleteAvatar
-} from "../../controllers/customer/customerAuth.Controller.js";
+} from "../../controllers/customer/customerAuth.controller.js";
 import { requireCustomerAuth } from "../../middlewares/authCustomer.middleware.js";
 import { uploadAvatar, handleAvatarUploadErrors } from "../../middlewares/uploadAvatar.middleware.js"; // IMPORT MIDDLEWARE MỚI
 

@@ -15,6 +15,12 @@ import {
   downloadAllQRCodes,
   getQRPreview
 } from '../../controllers/restaurant/qr.controller.js';
+import { validate } from '../../middlewares/validator.js';
+import {
+  createTableSchema,
+  updateTableSchema,
+  updateTableStatusSchema,
+} from '../../validators/table.validator.js';
 
 const router = express.Router();
 
@@ -28,13 +34,13 @@ router.get('/', getAllTable);
 router.get('/:id', getTableById);
 
 // POST /api/admin/tables
-router.post('/', createTable);
+router.post('/', validate(createTableSchema), createTable);
 
 //PUT	/api/admin/tables/:id
-router.put('/:id', updateTable);
+router.put('/:id', validate(updateTableSchema), updateTable);
 
 //PATCH	/api/admin/tables/:id/status
-router.patch('/:id/status', updateTableStatus);
+router.patch('/:id/status', validate(updateTableStatusSchema), updateTableStatus);
 
 // DELETE /api/admin/tables/:id
 router.delete('/:id', deleteTable);

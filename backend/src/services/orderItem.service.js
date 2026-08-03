@@ -98,7 +98,7 @@ class OrderItemService {
       include: [
         {
           model: db.MenuItem,
-          as: "menu_item", // [QUAN TRỌNG] Giữ là 'menu_item' (snake_case) như đã fix ở index.js
+          as: "menu_item", // Giữ là 'menu_item' (snake_case) như đã fix ở index.js
           attributes: ["name", "price", "image"],
         },
         {

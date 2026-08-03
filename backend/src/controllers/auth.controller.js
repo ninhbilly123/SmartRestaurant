@@ -17,7 +17,7 @@ export const login = async (req, res) => {
       return res.status(404).json({ message: "Tài khoản không tồn tại!" });
     }
 
-    // 🔥 [MỚI] Kiểm tra tài khoản có bị khóa không
+    // Kiểm tra tài khoản có bị khóa không
     if (user.is_active === false) {
         return res.status(403).json({ message: "Tài khoản này đã bị vô hiệu hóa!" });
     }
@@ -130,7 +130,7 @@ export const getAllUsers = async (req, res) => {
 
     const users = await User.findAll({
       where: whereCondition,
-      // 🔥 [MỚI] Lấy thêm trường is_active để hiển thị trạng thái
+      // Lấy thêm trường is_active để hiển thị trạng thái
       attributes: ['id', 'username', 'full_name', 'role', 'is_active', 'created_at'],
       order: [['created_at', 'DESC']]
     });

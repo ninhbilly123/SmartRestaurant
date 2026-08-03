@@ -6,12 +6,6 @@ import { Op, fn, col } from "sequelize";
 
 import { ItemService } from "../../services/menuItem.service.js";
 import menuItemPhotoService from "../../services/menuItemPhoto.service.js";
-import {
-  createMenuItemSchema,
-  updateMenuItemSchema,
-  updateMenuItemStatusSchema,
-} from "../../validators/item.validator.js";
-import { validate } from "../../middlewares/validator.js";
 import logger from "../../config/logger.js";
 
 const { MenuItemPhoto, sequelize } = db;
@@ -208,9 +202,7 @@ export const createItem = async (req, res) => {
 };
 
 //CẬP NHẬT ITEM
-export const updateItem = [
-  validate(updateMenuItemSchema),
-  async (req, res) => {
+export const updateItem = async (req, res) => {
     try {
       const validatedData = req.validatedData;
       const { id } = req.params;
@@ -260,11 +252,9 @@ export const updateItem = [
         error: error.message,
       });
     }
-  },
-];
+};
 
-export const deleteItem = [
-  async (req, res) => {
+export const deleteItem = async (req, res) => {
     try {
       const { id } = req.params; // id của menu item
 
@@ -348,5 +338,4 @@ export const deleteItem = [
           process.env.NODE_ENV === "development" ? error.message : undefined,
       });
     }
-  },
-];
+};

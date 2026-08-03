@@ -109,10 +109,10 @@ const OrderService = {
     }
   },
 
-  // 3. Lấy chi tiết đơn (🔥 ĐÃ SỬA: Kèm Topping & Giá)
+  // 3. Lấy chi tiết đơn (Kèm Topping & Giá)
   async getOrderById(customerId, orderId) {
       try {
-        // ✅ Nếu không có customerId (guest/table query) -> chỉ dùng orderId
+        // Nếu không có customerId (guest/table query) -> chỉ dùng orderId
         const whereClause = customerId 
           ? { customer_id: customerId, id: orderId }
           : { id: orderId };

@@ -21,7 +21,7 @@ export const createOrder = async (req, res) => {
       customer_id: customerID,
       table_id: value.table_id,
       total_amount: value.total_amount,
-      items: value.items, // <--- 🔥 QUAN TRỌNG: Phải truyền items xuống
+      items: value.items, // <---  Phải truyền items xuống
       note: value.note || ""
     });
 

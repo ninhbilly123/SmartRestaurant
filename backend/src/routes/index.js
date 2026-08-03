@@ -1,12 +1,11 @@
 import express from "express";
 import { verifyToken } from "../middlewares/auth.middleware.js";
+import verifyQRTokenMiddleware from "../middlewares/verifyQRToken.middleware.js";
 
 import authRoutes from "./auth.routes.js";
 import restaurantRoutes from "./restaurant/index.js";
-import customerRoutes, {
-  guestMenuRoutes,
-  verifyQRTokenMiddleware,
-} from "./customer/index.js";
+import customerRoutes from "./customer/index.js";
+import guestMenuRoutes from "./customer/guestMenu.routes.js";
 
 const router = express.Router();
 

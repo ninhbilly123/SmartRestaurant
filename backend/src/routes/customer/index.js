@@ -1,7 +1,5 @@
 // src/routes/customer/index.js
 import express from "express";
-import verifyQRTokenMiddleware from "../../middlewares/verifyQRToken.middleware.js";
-import guestMenuRoutes from "./guestMenu.routes.js";
 import customerAuthRoutes from "./customerAuth.routes.js";
 import orderHistoryRoutes from "./orderHistory.routes.js";
 import orderItemRoutes from "./orderItem.routes.js";
@@ -34,10 +32,5 @@ router.use("/orders", orderHistoryRoutes);
 // 6. Order Items: Khớp với API POST /api/customer/order-items
 // VD: /customer/order-items, /customer/order-items/order/:orderId
 router.use("/order-items", orderItemRoutes);
-
-// 7. Guest Menu (cần QR Token)
-// VD: /menu (sẽ được mount từ routes/index.js với path /menu)
-// Export riêng để mount ở ngoài vì path khác (/menu thay vì /customer/menu)
-export { guestMenuRoutes, verifyQRTokenMiddleware };
 
 export default router;
