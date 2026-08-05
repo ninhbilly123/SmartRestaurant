@@ -1,210 +1,206 @@
-import db from '../models/index.js';
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs'; 
-import { Op } from 'sequelize';
-import env from '../config/env.js';
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import { Op } from "sequelize";
+import env from "../config/env.js";
+import db from "../models/index.js";
 
 const User = db.User;
+const STAFF_ROLES = ["waiter", "kitchen"];
+const ADMIN_ROLES = ["admin", "super_admin"];
+const USER_ROLES = ["super_admin", "admin", ...STAFF_ROLES];
 
-// --- 1. LOGIN ---
+const toPublicUser = (user) => {
+  const data = user?.toJSON ? user.toJSON() : user;
+  if (!data) return null;
+
+  return {
+    id: data.id,
+    username: data.username,
+    role: data.role,
+    fullName: data.full_name,
+    full_name: data.full_name,
+    is_active: data.is_active,
+    created_at: data.created_at,
+  };
+};
+
+const canManageUser = (currentUser, targetUser) => {
+  if (String(currentUser.id) === String(targetUser.id)) return true;
+  if (currentUser.role === "super_admin" && targetUser.role === "admin") return true;
+  return currentUser.role === "admin" && STAFF_ROLES.includes(targetUser.role);
+};
+
 export const login = async (req, res) => {
   try {
     const { username, password } = req.body;
 
-    // Tìm user
     const user = await User.findOne({ where: { username } });
     if (!user) {
-      return res.status(404).json({ message: "Tài khoản không tồn tại!" });
+      return res.status(404).json({ message: "Tai khoan khong ton tai" });
     }
 
-    // Kiểm tra tài khoản có bị khóa không
     if (user.is_active === false) {
-        return res.status(403).json({ message: "Tài khoản này đã bị vô hiệu hóa!" });
+      return res.status(403).json({ message: "Tai khoan da bi vo hieu hoa" });
     }
 
-    // Check pass
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await bcrypt.compare(password, user.password || "");
     if (!isMatch) {
-      return res.status(401).json({ message: "Sai mật khẩu!" });
+      return res.status(401).json({ message: "Sai mat khau" });
     }
 
-    // Tạo Token
+    const publicUser = toPublicUser(user);
     const token = jwt.sign(
       {
-        id: user.id,
-        username: user.username,
-        role: user.role,
-        fullName: user.full_name,
+        id: publicUser.id,
+        username: publicUser.username,
+        role: publicUser.role,
+        fullName: publicUser.fullName,
       },
       env.jwt.secret,
-      { expiresIn: env.jwt.expiresIn }
+      { expiresIn: env.jwt.expiresIn },
     );
 
     return res.status(200).json({
-      message: "Đăng nhập thành công",
-      token: token,
-      user: {
-        id: user.id,
-        username: user.username,
-        role: user.role,
-        fullName: user.full_name
-      }
+      message: "Dang nhap thanh cong",
+      token,
+      user: publicUser,
     });
-
-  } catch (error) {
-    console.error("Login Error:", error);
-    return res.status(500).json({ message: "Lỗi Server" });
+  } catch {
+    return res.status(500).json({ message: "Loi server" });
   }
 };
 
-// --- 2. CREATE USER (Tạo Admin/Waiter/Kitchen) ---
 export const createUser = async (req, res) => {
   try {
-    if (!req.user) return res.status(401).json({ message: "Chưa xác thực!" });
-
-    const creatorRole = req.user.role; 
+    const creatorRole = req.user?.role;
     const { username, password, role, full_name } = req.body;
 
     if (!username || !password || !role) {
-        return res.status(400).json({ message: "Thiếu thông tin bắt buộc!" });
+      return res.status(400).json({ message: "Thieu thong tin bat buoc" });
     }
 
-    // PHÂN QUYỀN
-    if (creatorRole !== 'super_admin' && creatorRole !== 'admin') {
-       return res.status(403).json({ message: "Bạn không có quyền tạo tài khoản!" });
+    if (!USER_ROLES.includes(role)) {
+      return res.status(400).json({ message: "Vai tro khong hop le" });
     }
-    
-    // Admin không được tạo Admin khác hoặc Super Admin
-    if (creatorRole === 'admin' && (role === 'admin' || role === 'super_admin')) {
-        return res.status(403).json({ message: "Admin chỉ được tạo nhân viên (Waiter/Kitchen)!" });
+
+    if (!ADMIN_ROLES.includes(creatorRole)) {
+      return res.status(403).json({ message: "Khong co quyen tao tai khoan" });
+    }
+
+    if (creatorRole === "admin" && !STAFF_ROLES.includes(role)) {
+      return res.status(403).json({
+        message: "Admin chi duoc tao tai khoan waiter hoac kitchen",
+      });
     }
 
     const existingUser = await User.findOne({ where: { username } });
-    if (existingUser) return res.status(400).json({ message: "Username đã tồn tại" });
+    if (existingUser) {
+      return res.status(409).json({ message: "Username da ton tai" });
+    }
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
+    const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = await User.create({
       username,
       password: hashedPassword,
-      role, 
+      role,
       full_name,
-      is_active: true // Mặc định là active
+      is_active: true,
     });
 
-    res.status(201).json({ 
-        message: "Tạo tài khoản thành công", 
-        user: {
-            id: newUser.id,
-            username: newUser.username,
-            role: newUser.role,
-            full_name: newUser.full_name
-        } 
+    return res.status(201).json({
+      message: "Tao tai khoan thanh cong",
+      user: toPublicUser(newUser),
     });
-
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({ message: error.message });
   }
 };
 
-// --- 3. GET ALL USERS ---
 export const getAllUsers = async (req, res) => {
   try {
-    const currentUser = req.user; 
-    let whereCondition = {};
+    const currentUser = req.user;
+    let whereCondition;
 
-    // Super Admin -> Xem danh sách Admin
-    if (currentUser.role === 'super_admin') {
-      whereCondition = { role: 'admin' };
-    } 
-    // Admin -> Xem danh sách Nhân viên
-    else if (currentUser.role === 'admin') {
-      whereCondition = { 
-        role: { [Op.or]: ['waiter', 'kitchen'] } 
-      };
-    } 
-    else {
-      return res.status(403).json({ message: "Bạn không có quyền xem danh sách này!" });
+    if (currentUser.role === "super_admin") {
+      whereCondition = { role: "admin" };
+    } else if (currentUser.role === "admin") {
+      whereCondition = { role: { [Op.or]: STAFF_ROLES } };
+    } else {
+      return res.status(403).json({ message: "Khong co quyen xem danh sach nay" });
     }
 
     const users = await User.findAll({
       where: whereCondition,
-      // Lấy thêm trường is_active để hiển thị trạng thái
-      attributes: ['id', 'username', 'full_name', 'role', 'is_active', 'created_at'],
-      order: [['created_at', 'DESC']]
+      attributes: ["id", "username", "full_name", "role", "is_active", "created_at"],
+      order: [["created_at", "DESC"]],
     });
 
-    res.status(200).json(users);
+    return res.status(200).json(users.map(toPublicUser));
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({ message: error.message });
   }
 };
 
-// --- 4. UPDATE USER (Sửa thông tin: Pass, Tên) ---
 export const updateUser = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { full_name, password } = req.body;
-        const currentUser = req.user;
+  try {
+    const { id } = req.params;
+    const { full_name, password } = req.body;
+    const currentUser = req.user;
 
-        const userToUpdate = await User.findByPk(id);
-        if (!userToUpdate) return res.status(404).json({ message: "User not found" });
-
-        // Logic quyền: Chỉ được sửa bản thân HOẶC cấp trên sửa cấp dưới
-        const isSelf = String(currentUser.id) === String(id);
-        const isSuperAdminEditingAdmin = currentUser.role === 'super_admin' && userToUpdate.role === 'admin';
-        const isAdminEditingStaff = currentUser.role === 'admin' && ['waiter', 'kitchen'].includes(userToUpdate.role);
-
-        if (!isSelf && !isSuperAdminEditingAdmin && !isAdminEditingStaff) {
-            return res.status(403).json({ message: "Không có quyền sửa user này" });
-        }
-
-        // Cập nhật thông tin
-        if (full_name) userToUpdate.full_name = full_name;
-        
-        // Nếu có đổi mật khẩu thì hash lại
-        if (password && password.trim() !== "") {
-            const salt = await bcrypt.genSalt(10);
-            userToUpdate.password = await bcrypt.hash(password, salt);
-        }
-
-        await userToUpdate.save();
-
-        res.status(200).json({ message: "Cập nhật thành công", user: userToUpdate });
-
-    } catch (error) {
-        res.status(500).json({ message: error.message });
+    const userToUpdate = await User.findByPk(id);
+    if (!userToUpdate) {
+      return res.status(404).json({ message: "User not found" });
     }
+
+    if (!canManageUser(currentUser, userToUpdate)) {
+      return res.status(403).json({ message: "Khong co quyen sua user nay" });
+    }
+
+    if (full_name !== undefined) userToUpdate.full_name = full_name;
+    if (password && password.trim() !== "") {
+      userToUpdate.password = await bcrypt.hash(password, 10);
+    }
+
+    await userToUpdate.save();
+
+    return res.status(200).json({
+      message: "Cap nhat thanh cong",
+      user: toPublicUser(userToUpdate),
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
 };
 
-// --- 5. TOGGLE STATUS (Khóa/Mở khóa tài khoản) ---
 export const toggleUserStatus = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { is_active } = req.body; // true hoặc false
-        const currentUser = req.user;
+  try {
+    const { id } = req.params;
+    const { is_active } = req.body;
+    const currentUser = req.user;
 
-        const userToUpdate = await User.findByPk(id);
-        if (!userToUpdate) return res.status(404).json({ message: "User not found" });
-
-        // Logic quyền: Chỉ SuperAdmin khóa Admin, Admin khóa Staff
-        const isSuperAdminEditingAdmin = currentUser.role === 'super_admin' && userToUpdate.role === 'admin';
-        const isAdminEditingStaff = currentUser.role === 'admin' && ['waiter', 'kitchen'].includes(userToUpdate.role);
-
-        if (!isSuperAdminEditingAdmin && !isAdminEditingStaff) {
-            return res.status(403).json({ message: "Bạn không có quyền thay đổi trạng thái user này" });
-        }
-
-        userToUpdate.is_active = is_active;
-        await userToUpdate.save();
-
-        res.status(200).json({ 
-            message: `Tài khoản đã được ${is_active ? 'Mở khóa' : 'Khóa'}`, 
-            user: { id: userToUpdate.id, is_active: userToUpdate.is_active } 
-        });
-
-    } catch (error) {
-        res.status(500).json({ message: error.message });
+    const userToUpdate = await User.findByPk(id);
+    if (!userToUpdate) {
+      return res.status(404).json({ message: "User not found" });
     }
+
+    const canToggle =
+      (currentUser.role === "super_admin" && userToUpdate.role === "admin") ||
+      (currentUser.role === "admin" && STAFF_ROLES.includes(userToUpdate.role));
+
+    if (!canToggle) {
+      return res.status(403).json({
+        message: "Khong co quyen thay doi trang thai user nay",
+      });
+    }
+
+    userToUpdate.is_active = Boolean(is_active);
+    await userToUpdate.save();
+
+    return res.status(200).json({
+      message: `Tai khoan da duoc ${userToUpdate.is_active ? "mo khoa" : "khoa"}`,
+      user: toPublicUser(userToUpdate),
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
 };

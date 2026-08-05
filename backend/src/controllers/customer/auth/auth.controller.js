@@ -1,6 +1,20 @@
+import Customer from "../../../models/customer.js";
 import customerService from "../../../services/customer.service.js";
 import customerValidator from "../../../validators/customer.validator.js";
-import Customer from "../../../models/customer.js";
+
+const toPublicCustomer = (customer) => {
+  const data = customer?.toJSON ? customer.toJSON() : customer;
+  if (!data) return null;
+
+  return {
+    uid: data.uid,
+    username: data.username,
+    email: data.email,
+    full_name: data.full_name || data.username || null,
+    phone: data.phone || null,
+    avatar: data.avatar || null,
+  };
+};
 
 export const register = async (req, res) => {
   try {
@@ -13,20 +27,19 @@ export const register = async (req, res) => {
     }
 
     const { username, email, password } = req.body;
-    const result = await customerService.register(username, email, password, "email");
-    const customerData = result.customer.toJSON();
-    delete customerData.password;
+    const result = await customerService.register(
+      username,
+      email,
+      password,
+      "email",
+    );
 
     return res.status(201).json({
       success: true,
-      message: "Đăng ký thành công. Vui lòng kiểm tra email để xác thực.",
+      message: "Dang ky thanh cong. Vui long kiem tra email de xac thuc.",
       data: {
         customer: {
-          uid: customerData.uid,
-          username: customerData.username,
-          email: customerData.email,
-          phone: customerData.phone || null,
-          avatar: customerData.avatar || null,
+          ...toPublicCustomer(result.customer),
           isEmailVerified: false,
         },
         accessToken: result.accessToken,
@@ -34,7 +47,7 @@ export const register = async (req, res) => {
       },
     });
   } catch (error) {
-    return res.status(400).json({
+    return res.status(error.status || 400).json({
       success: false,
       error: error.message,
     });
@@ -43,38 +56,43 @@ export const register = async (req, res) => {
 
 export const syncGoogleUser = async (req, res) => {
   try {
-    const { username, email } = req.body;
+    const {
+      credential,
+      email,
+      googleAccessToken,
+      idToken,
+      providerToken,
+      username,
+    } = req.body;
 
-    if (!email) {
+    if (!idToken && !credential && !googleAccessToken && !providerToken) {
       return res.status(400).json({
         success: false,
-        error: "Email là bắt buộc",
+        error: "Thieu Google token",
       });
     }
 
-    const result = await customerService.syncGoogleUser(
-      username || email.split("@")[0],
+    const result = await customerService.syncGoogleUser({
+      credential,
       email,
-      "google"
-    );
+      googleAccessToken,
+      idToken,
+      providerToken,
+      username,
+    });
 
     return res.status(200).json({
       success: true,
-      message: "Đăng nhập Google thành công",
+      message: "Dang nhap Google thanh cong",
       data: {
-        customer: {
-          username: result.customer.username,
-          email: result.customer.email,
-          phone: result.customer.phone || null,
-          avatar: result.customer.avatar || null,
-        },
+        customer: toPublicCustomer(result.customer),
         accessToken: result.accessToken,
       },
     });
   } catch (error) {
-    return res.status(500).json({
+    return res.status(error.status || 500).json({
       success: false,
-      error: error.message || "Không thể đồng bộ với Google",
+      error: error.message || "Khong the dong bo voi Google",
     });
   }
 };
@@ -93,14 +111,12 @@ export const login = async (req, res) => {
 
     try {
       const result = await customerService.login(email, password);
-      const customerData = result.customer.toJSON();
-      delete customerData.password;
 
       return res.status(200).json({
         success: true,
-        message: "Đăng nhập thành công",
+        message: "Dang nhap thanh cong",
         data: {
-          customer: customerData,
+          customer: toPublicCustomer(result.customer),
           accessToken: result.accessToken,
           isEmailVerified: true,
         },
@@ -113,7 +129,7 @@ export const login = async (req, res) => {
           return res.status(200).json({
             success: false,
             needsVerification: true,
-            message: "Vui lòng xác thực email trước khi đăng nhập",
+            message: "Vui long xac thuc email truoc khi dang nhap",
             data: {
               customerId: customer.uid,
               email: customer.email,
@@ -126,9 +142,9 @@ export const login = async (req, res) => {
       throw loginError;
     }
   } catch (error) {
-    return res.status(401).json({
+    return res.status(error.status || 401).json({
       success: false,
-      error: error.message || "Đăng nhập thất bại",
+      error: error.message || "Dang nhap that bai",
     });
   }
 };

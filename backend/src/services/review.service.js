@@ -69,6 +69,12 @@ export const createReview = async ({
     throw error;
   }
 
+  if (order.status !== "completed") {
+    const error = new Error("Only completed orders can be reviewed");
+    error.status = 400;
+    throw error;
+  }
+
   const orderItem = await OrderItem.findOne({
     where: {
       order_id: orderId,
@@ -193,6 +199,23 @@ export const getMenuItemReviews = async ({
 };
 
 export const getReviewableItems = async ({ customerId, orderId }) => {
+  const order = await Order.findByPk(orderId);
+
+  if (!order) {
+    const error = new Error("Order not found");
+    error.status = 404;
+    throw error;
+  }
+
+  if (order.status !== "completed") {
+    return {
+      order_id: orderId,
+      reviewable_items: [],
+      already_reviewed: 0,
+      total_items: 0,
+    };
+  }
+
   const orderItems = await OrderItem.findAll({
     where: { order_id: orderId },
     include: [

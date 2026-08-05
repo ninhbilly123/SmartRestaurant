@@ -1,150 +1,124 @@
-// services/orderItem.service.js
-import db from '../models/index.js'; // Import từ db chung
-import logger from '../config/logger.js';
+import { Transaction } from "sequelize";
+import logger from "../config/logger.js";
+import db from "../models/index.js";
+import {
+  CLOSED_ORDER_STATUSES,
+  createPricedOrderItem,
+  createServiceError,
+} from "./orderPricing.service.js";
 
 class OrderItemService {
-  /**
-   * Tạo mới một chi tiết đơn hàng
-   */
   async createOrderItems(data) {
-    const { order_id, items } = data;
-
-    // 1. Transaction bao trùm toàn bộ
+    const { order_id: orderId, items } = data;
     const transaction = await db.sequelize.transaction();
-    
-    // 👇 Biến để tính tổng tiền của đợt gọi món này
-    let batchTotalAmount = 0; 
 
     try {
-      // Duyệt qua từng món trong mảng gửi lên
-      for (const itemData of items) {
-        // Lưu ý: itemData lúc này backend nhận được key là 'menu_item_id' (do Frontend map)
-        // hoặc 'id' tùy vào payload bạn gửi.
-        // Để an toàn, mình destructure linh hoạt:
-        const menu_item_id = itemData.menu_item_id || itemData.id; 
-        const { quantity, notes, modifiers } = itemData;
+      const order = await db.Order.findByPk(orderId, {
+        transaction,
+        lock: Transaction.LOCK.UPDATE,
+      });
 
-        // A. Tra giá gốc (Security)
-        const menuItem = await db.MenuItem.findByPk(menu_item_id);
-        if (!menuItem) {
-          throw new Error(`Món ăn ID ${menu_item_id} không tồn tại`);
-        }
-
-        const itemPrice = Number(menuItem.price); // Giá gốc món ăn
-        let itemModifiersTotal = 0; // Tổng tiền topping của riêng món này
-
-        // B. Tạo OrderItem
-        const newItem = await db.OrderItem.create({
-          order_id,
-          menu_item_id,
-          quantity: quantity || 1,
-          price_at_order: itemPrice, // Giá gốc từ DB
-          notes: notes || null,
-          status: 'pending'
-        }, { transaction });
-
-        // C. Lưu Modifiers (Snapshot Pricing)
-        if (modifiers && Array.isArray(modifiers) && modifiers.length > 0) {
-          const modifierRecords = modifiers.map((modifier) => {
-             // Lấy giá snapshot
-             const modPrice = Number(modifier.price_adjustment || modifier.price || 0);
-             
-             // Cộng dồn vào tổng tiền topping
-             itemModifiersTotal += modPrice; 
-
-             return {
-                order_item_id: newItem.id,
-                modifier_option_id: modifier.optionId || modifier.id,
-                price: modPrice
-             };
-          });
-
-          await db.OrderItemModifier.bulkCreate(modifierRecords, { transaction });
-        }
-
-        // D. 👇 [QUAN TRỌNG] Cộng tiền món này vào tổng batch
-        // Công thức: (Giá món + Giá Topping) * Số lượng
-        batchTotalAmount += (itemPrice + itemModifiersTotal) * (quantity || 1);
+      if (!order) {
+        throw createServiceError("Order khong ton tai", 404);
       }
 
-      // E. 👇 [MỚI] Cập nhật lại tổng tiền cho Order
-      const currentOrder = await db.Order.findByPk(order_id, { transaction });
-      if (!currentOrder) throw new Error('Order not found during update');
+      if (CLOSED_ORDER_STATUSES.includes(order.status)) {
+        throw createServiceError("Don hang da dong, khong the goi them mon");
+      }
 
-      // Cộng tiền cũ + Tiền mới gọi thêm
-      currentOrder.total_amount = Number(currentOrder.total_amount) + batchTotalAmount;
-      await currentOrder.save({ transaction });
+      const createdItems = [];
+      let batchTotalAmount = 0;
 
-      // 2. Commit Transaction
+      for (const itemData of items) {
+        const { orderItem, lineTotal } = await createPricedOrderItem({
+          itemData,
+          orderId,
+          transaction,
+        });
+
+        batchTotalAmount += lineTotal;
+        createdItems.push(orderItem);
+      }
+
+      order.subtotal = Number(order.subtotal || 0) + batchTotalAmount;
+      order.total_amount = Number(order.total_amount || 0) + batchTotalAmount;
+      if (["ready", "served"].includes(order.status)) {
+        order.status = "pending";
+      }
+      await order.save({ transaction });
+
       await transaction.commit();
-      
-      logger.info(`Added items. Batch total: ${batchTotalAmount}. New Order Total: ${currentOrder.total_amount}`);
 
-      return true; 
+      logger.info(
+        `Added ${createdItems.length} order items. Batch total: ${batchTotalAmount}. Order: ${orderId}`,
+      );
 
+      return createdItems;
     } catch (error) {
       await transaction.rollback();
       throw error;
     }
   }
 
-  /**
-   * Lấy danh sách món ăn theo Order ID và format dữ liệu
-   */
   async getItemsByOrderId(orderId) {
-    // Dùng db.OrderItem
     const items = await db.OrderItem.findAll({
       where: { order_id: orderId },
       include: [
         {
           model: db.MenuItem,
-          as: "menu_item", // Giữ là 'menu_item' (snake_case) như đã fix ở index.js
-          attributes: ["name", "price", "image"],
+          as: "menu_item",
+          attributes: ["id", "name", "price"],
+          include: [
+            {
+              model: db.MenuItemPhoto,
+              as: "photos",
+              attributes: ["id", "url", "is_primary"],
+              required: false,
+            },
+          ],
         },
         {
           model: db.OrderItemModifier,
           as: "modifiers",
-          attributes: ['id', 'price', 'modifier_option_id'],
+          attributes: ["id", "price", "modifier_option_id"],
           include: [
             {
               model: db.ModifierOption,
               as: "modifier_option",
-              attributes: ["name"]
-            }
-          ]
-        }
+              attributes: ["name"],
+            },
+          ],
+        },
       ],
     });
 
     return items.map((item) => {
-      const price = parseFloat(item.price_at_order) || 0;
-      const qty = parseInt(item.quantity) || 0;
-      
-      // Tính tổng tiền bao gồm cả modifier (dùng giá snapshot)
-      const modifiersTotal = (item.modifiers || []).reduce((sum, mod) => {
-          return sum + parseFloat(mod.price || 0);
-      }, 0);
+      const price = Number(item.price_at_order || 0);
+      const quantity = Number(item.quantity || 0);
+      const modifiers = item.modifiers || [];
+      const modifiersTotal = modifiers.reduce(
+        (sum, modifier) => sum + Number(modifier.price || 0),
+        0,
+      );
+      const photos = item.menu_item?.photos || [];
+      const primaryPhoto =
+        photos.find((photo) => photo.is_primary) || photos[0] || null;
 
       return {
         id: item.id,
         menu_item_id: item.menu_item_id,
-        menu_item_name: item.menu_item?.name || "Món đã xóa",
-        menu_item_image: item.menu_item?.image,
-        
-        price_at_order: price, // Giá gốc
-        quantity: qty,
-        
-        // List modifiers kèm giá
-        modifiers: item.modifiers.map(m => ({
-            id: m.id,
-            name: m.modifier_option?.name,
-            price: parseFloat(m.price) // Giá snapshot
+        menu_item_name: item.menu_item?.name || "Mon da xoa",
+        menu_item_image: primaryPhoto?.url || null,
+        price_at_order: price,
+        quantity,
+        modifiers: modifiers.map((modifier) => ({
+          id: modifier.id,
+          name: modifier.modifier_option?.name,
+          price: Number(modifier.price || 0),
         })),
-
-        // Tổng tiền dòng này = (Giá gốc + Topping) * SL
-        subtotal: (price + modifiersTotal) * qty,
+        subtotal: (price + modifiersTotal) * quantity,
         notes: item.notes || "",
-        status: item.status
+        status: item.status,
       };
     });
   }

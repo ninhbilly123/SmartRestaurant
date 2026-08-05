@@ -1,4 +1,5 @@
 import Customer from "../models/customer.js";
+import VerifiedEmail from "../models/verifiedEmail.js";
 import logger from "../config/logger.js";
 import customerService from "../services/customer.service.js";
 
@@ -36,12 +37,29 @@ export const optionalCustomerAuth = async (req, res, next) => {
         return next();
       }
 
+      const isEmailVerified =
+        customer.auth_method === "google" ||
+        !!(await VerifiedEmail.findOne({
+          where: {
+            customer_uid: customer.uid,
+            email: customer.email,
+            auth_method: customer.auth_method,
+            is_verified: true,
+          },
+        }));
+
+      if (!isEmailVerified) {
+        clearCustomerAuth(req);
+        return next();
+      }
+
       const currentCustomer = {
         uid: customer.uid,
         id: customer.uid,
         username: customer.username,
         full_name: customer.full_name || customer.username,
         email: customer.email,
+        isEmailVerified,
         role: "customer",
       };
 

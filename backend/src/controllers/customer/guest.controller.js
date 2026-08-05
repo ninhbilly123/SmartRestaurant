@@ -1,4 +1,5 @@
 import * as guestService from "../../services/guest.service.js";
+import logger from "../../config/logger.js";
 
 const getGuestMenu = async (req, res) => {
 	try {
@@ -26,7 +27,7 @@ const getGuestMenu = async (req, res) => {
 			data: result,
 		});
 	} catch (error) {
-		console.error("Error fetching guest menu:", error);
+		logger.error("Error fetching guest menu:", error);
 		return res.status(500).json({
 			success: false,
 			message: "Internal server error",

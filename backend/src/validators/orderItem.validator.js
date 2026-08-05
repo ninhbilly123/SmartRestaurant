@@ -1,19 +1,13 @@
 import Joi from "joi";
 
-const idSchema = Joi.alternatives().try(
-  Joi.string().uuid(),
-  Joi.string().trim().min(1),
-  Joi.number()
-);
+const idSchema = Joi.string().uuid();
 
 const modifierSchema = Joi.object({
   id: idSchema.optional(),
   optionId: idSchema.optional(),
-  price: Joi.number().min(0).optional(),
-  price_adjustment: Joi.number().min(0).optional(),
+  modifier_option_id: idSchema.optional(),
 })
-  .or("id", "optionId")
-  .unknown(true);
+  .or("id", "optionId", "modifier_option_id");
 
 const orderItemPayloadSchema = Joi.object({
   menu_item_id: idSchema.optional(),
@@ -22,8 +16,7 @@ const orderItemPayloadSchema = Joi.object({
   notes: Joi.string().allow("", null).optional(),
   modifiers: Joi.array().items(modifierSchema).default([]),
 })
-  .or("menu_item_id", "id")
-  .unknown(true);
+  .or("menu_item_id", "id");
 
 export const orderItemSchemas = {
   createOrderItems: Joi.object({

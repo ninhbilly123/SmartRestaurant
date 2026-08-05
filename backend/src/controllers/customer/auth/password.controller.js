@@ -1,6 +1,8 @@
 import customerService from "../../../services/customer.service.js";
 import customerValidator from "../../../validators/customer.validator.js";
 
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export const sendForgotPasswordOTP = async (req, res) => {
   try {
     const { email } = req.body;
@@ -8,15 +10,14 @@ export const sendForgotPasswordOTP = async (req, res) => {
     if (!email) {
       return res.status(400).json({
         success: false,
-        error: "Vui lòng nhập email",
+        error: "Vui long nhap email",
       });
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return res.status(400).json({
         success: false,
-        error: "Email không hợp lệ",
+        error: "Email khong hop le",
       });
     }
 
@@ -24,15 +25,16 @@ export const sendForgotPasswordOTP = async (req, res) => {
 
     return res.json({
       success: true,
-      message: result.message || "Mã OTP đã được gửi đến email của bạn",
+      message: result.message || "Ma OTP da duoc gui den email cua ban",
       data: {
         email: result.email,
+        otpExpires: result.otpExpires,
       },
     });
   } catch (error) {
-    return res.status(400).json({
+    return res.status(error.status || 400).json({
       success: false,
-      error: error.message || "Không thể gửi OTP",
+      error: error.message || "Khong the gui OTP",
     });
   }
 };
@@ -44,14 +46,14 @@ export const verifyForgotPasswordOTP = async (req, res) => {
     if (!email || !otp) {
       return res.status(400).json({
         success: false,
-        error: "Vui lòng nhập email và mã OTP",
+        error: "Vui long nhap email va ma OTP",
       });
     }
 
     if (!/^\d{6}$/.test(otp)) {
       return res.status(400).json({
         success: false,
-        error: "Mã OTP phải gồm 6 chữ số",
+        error: "Ma OTP phai gom 6 chu so",
       });
     }
 
@@ -59,64 +61,61 @@ export const verifyForgotPasswordOTP = async (req, res) => {
 
     return res.json({
       success: true,
-      message: result.message || "Xác thực OTP thành công",
+      message: result.message || "Xac thuc OTP thanh cong",
       data: {
         email: result.email,
-        resetToken: Buffer.from(`${email}:${otp}:${Date.now()}`).toString("base64"),
+        resetToken: result.resetToken,
       },
     });
   } catch (error) {
-    return res.status(400).json({
+    return res.status(error.status || 400).json({
       success: false,
-      error: error.message || "Xác thực OTP thất bại",
+      error: error.message || "Xac thuc OTP that bai",
     });
   }
 };
 
 export const resetPassword = async (req, res) => {
   try {
-    const { email, otp, newPassword, confirmPassword } = req.body;
+    const { email, otp, resetToken, newPassword, confirmPassword } = req.body;
 
-    if (!email || !otp || !newPassword || !confirmPassword) {
+    if (!email || (!otp && !resetToken) || !newPassword || !confirmPassword) {
       return res.status(400).json({
         success: false,
-        error: "Vui lòng nhập đầy đủ thông tin",
+        error: "Vui long nhap day du thong tin",
       });
     }
 
     if (newPassword.length < 6) {
       return res.status(400).json({
         success: false,
-        error: "Mật khẩu phải có ít nhất 6 ký tự",
+        error: "Mat khau phai co it nhat 6 ky tu",
       });
     }
 
     if (newPassword !== confirmPassword) {
       return res.status(400).json({
         success: false,
-        error: "Mật khẩu xác nhận không khớp",
+        error: "Mat khau xac nhan khong khop",
       });
     }
 
-    try {
-      await customerService.verifyForgotPasswordOTP(email, otp);
-    } catch (otpError) {
-      return res.status(400).json({
-        success: false,
-        error: "Mã OTP không hợp lệ hoặc đã hết hạn",
-      });
-    }
-
-    const result = await customerService.resetPasswordWithoutOld(email, newPassword);
+    const result = await customerService.resetPasswordWithoutOld(
+      email,
+      newPassword,
+      resetToken || otp,
+    );
 
     return res.json({
       success: true,
-      message: result.message || "Đặt lại mật khẩu thành công. Vui lòng đăng nhập bằng mật khẩu mới.",
+      message:
+        result.message ||
+        "Dat lai mat khau thanh cong. Vui long dang nhap bang mat khau moi.",
     });
   } catch (error) {
-    return res.status(400).json({
+    return res.status(error.status || 400).json({
       success: false,
-      error: error.message || "Không thể đặt lại mật khẩu",
+      error: error.message || "Khong the dat lai mat khau",
     });
   }
 };
@@ -128,7 +127,7 @@ export const changePassword = async (req, res) => {
     if (!uid) {
       return res.status(401).json({
         success: false,
-        error: "Không tìm thấy thông tin người dùng",
+        error: "Khong tim thay thong tin nguoi dung",
       });
     }
 
@@ -145,10 +144,10 @@ export const changePassword = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: result.message || "Đổi mật khẩu thành công",
+      message: result.message || "Doi mat khau thanh cong",
     });
   } catch (error) {
-    return res.status(400).json({
+    return res.status(error.status || 400).json({
       success: false,
       error: error.message,
     });

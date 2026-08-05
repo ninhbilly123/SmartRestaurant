@@ -32,6 +32,15 @@ MenuCategory.init(
       type: DataTypes.ENUM("active", "inactive"),
       defaultValue: "active",
     },
+    is_deleted: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+      allowNull: false,
+    },
+    deleted_at: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
   },
   {
     sequelize,
@@ -42,7 +51,13 @@ MenuCategory.init(
     indexes: [
       { fields: ["status"] },
       { fields: ["display_order"] },
+      { fields: ["is_deleted"] },
     ],
+    defaultScope: {
+      where: {
+        is_deleted: false,
+      },
+    },
   }
 );
 

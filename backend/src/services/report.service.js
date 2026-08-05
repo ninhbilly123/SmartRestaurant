@@ -1,7 +1,7 @@
-import { Op } from "sequelize";
+import { Op, QueryTypes } from "sequelize";
 import db from "../models/index.js";
 
-const { Order, OrderItem, MenuItem } = db;
+const { Order } = db;
 const sequelize = db.sequelize;
 
 const getDateRange = ({ fromDate, toDate, fallbackDays }) => {
@@ -79,66 +79,58 @@ export const getRevenueChart = async ({ fromDate, toDate }) => {
 
 export const getTopSellingItems = async ({ fromDate, toDate, limit = 5 }) => {
   const [from, to] = getDateRange({ fromDate, toDate, fallbackDays: 30 });
+  const normalizedLimit = Math.max(1, parseInt(limit, 10) || 5);
 
-  const topItems = await OrderItem.findAll({
-    attributes: [
-      "menu_item_id",
-      [sequelize.fn("SUM", sequelize.col("quantity")), "total_quantity"],
-      [
-        sequelize.fn(
-          "SUM",
-          sequelize.literal("quantity * price_at_order"),
-        ),
-        "total_revenue",
-      ],
-    ],
-    include: [
-      {
-        model: MenuItem,
-        as: "menu_item",
-        attributes: ["name"],
-      },
-      {
-        model: Order,
-        as: "order",
-        attributes: [],
-        where: {
-          status: "completed",
-          created_at: { [Op.between]: [from, to] },
-        },
-      },
-    ],
-    group: ["menu_item_id", "menu_item.id"],
-    order: [[sequelize.literal("total_quantity"), "DESC"]],
-    limit: parseInt(limit, 10),
-    raw: true,
-    nest: true,
-  });
+  const topItems = await sequelize.query(
+    `
+      SELECT
+        oi.menu_item_id,
+        COALESCE(mi.name, 'Mon da xoa') AS name,
+        SUM(oi.quantity)::int AS total_quantity,
+        SUM((oi.price_at_order + COALESCE(modifiers.modifiers_total, 0)) * oi.quantity)::numeric AS total_revenue
+      FROM order_items oi
+      INNER JOIN orders o ON o.id = oi.order_id
+      LEFT JOIN menu_items mi ON mi.id = oi.menu_item_id
+      LEFT JOIN (
+        SELECT order_item_id, SUM(price) AS modifiers_total
+        FROM order_item_modifiers
+        GROUP BY order_item_id
+      ) modifiers ON modifiers.order_item_id = oi.id
+      WHERE o.status = 'completed'
+        AND o.created_at BETWEEN :from AND :to
+        AND oi.status <> 'cancelled'
+      GROUP BY oi.menu_item_id, mi.name
+      ORDER BY total_quantity DESC
+      LIMIT :limit
+    `,
+    {
+      replacements: { from, to, limit: normalizedLimit },
+      type: QueryTypes.SELECT,
+    },
+  );
 
   return topItems.map((item) => ({
-    name: item.menu_item?.name || "Mon da xoa",
-    value: parseInt(item.total_quantity, 10),
-    revenue: parseFloat(item.total_revenue),
+    name: item.name,
+    value: Number(item.total_quantity || 0),
+    revenue: Number(item.total_revenue || 0),
   }));
 };
 
 export const getPeakHours = async () => {
-  const orders = await Order.findAll({
-    attributes: ["created_at"],
-    where: {
-      status: { [Op.ne]: "cancelled" },
-    },
-    raw: true,
-  });
+  const rows = await sequelize.query(
+    `
+      SELECT EXTRACT(HOUR FROM created_at)::int AS hour, COUNT(*)::int AS order_count
+      FROM orders
+      WHERE status <> 'cancelled'
+      GROUP BY hour
+    `,
+    { type: QueryTypes.SELECT },
+  );
 
   const hoursCount = Array(24).fill(0);
-
-  orders.forEach((order) => {
-    if (!order.created_at) return;
-
-    const hour = new Date(order.created_at).getHours();
-    if (hour >= 0 && hour < 24) {
-      hoursCount[hour] += 1;
+  rows.forEach((row) => {
+    if (row.hour >= 0 && row.hour < 24) {
+      hoursCount[row.hour] = Number(row.order_count || 0);
     }
   });
 

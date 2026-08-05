@@ -4,6 +4,7 @@ import PDFDocument from "pdfkit";
 import archiver from "archiver";
 import Table from "../models/table.js";
 import env from "../config/env.js";
+import logger from "../config/logger.js";
 
 /**
  * QR Code Service
@@ -210,7 +211,7 @@ export class QRService {
 						name: `table_${table.table_number}_qr.png`,
 					});
 				} catch (error) {
-					console.error(
+					logger.error(
 						`Error generating QR for table ${table.table_number}:`,
 						error
 					);
@@ -238,7 +239,7 @@ export class QRService {
 
 		doc.on("data", (chunk) => chunks.push(chunk));
 		doc.on("error", (err) => {
-			console.error("PDF generation error:", err);
+			logger.error("PDF generation error:", err);
 		});
 
 		const pdfPromise = new Promise((resolve, reject) => {
@@ -255,7 +256,7 @@ export class QRService {
 					const qrBuffer = await this.generateQRBuffer(url);
 					return { table, qrBuffer };
 				} catch (error) {
-					console.error(
+					logger.error(
 						`Error generating QR for table ${table.table_number}:`,
 						error
 					);

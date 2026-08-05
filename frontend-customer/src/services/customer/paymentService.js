@@ -1,11 +1,16 @@
 import { apiClient } from "../../config/api";
 
 const getErrorMessage = (error, fallback) =>
-  error.response?.data?.error || error.response?.data?.message || error.message || fallback;
+  error.response?.data?.error ||
+  error.response?.data?.message ||
+  error.message ||
+  fallback;
 
 export const getActiveOrder = async (tableId) => {
   try {
-    const response = await apiClient.get(`/customer/tables/${tableId}/active-order`);
+    const response = await apiClient.get(
+      `/customer/tables/${tableId}/active-order`,
+    );
     return response.data;
   } catch (error) {
     throw new Error(getErrorMessage(error, "Không thể lấy thông tin đơn hàng"));
@@ -14,7 +19,9 @@ export const getActiveOrder = async (tableId) => {
 
 export const requestPayment = async (orderId) => {
   try {
-    const response = await apiClient.post(`/customer/orders/${orderId}/request-payment`);
+    const response = await apiClient.post(
+      `/customer/orders/${orderId}/request-payment`,
+    );
     return response.data;
   } catch (error) {
     throw new Error(getErrorMessage(error, "Yêu cầu thanh toán thất bại"));
@@ -29,30 +36,16 @@ export const selectPaymentMethod = async (orderId, paymentMethod) => {
     );
     return response.data;
   } catch (error) {
-    throw new Error(getErrorMessage(error, "Không thể chọn phương thức thanh toán"));
-  }
-};
-
-export const completePayment = async (orderId, transactionId, paymentMethod) => {
-  try {
-    const response = await apiClient.post(
-      `/customer/orders/${orderId}/complete-payment`,
-      {
-        transaction_id: transactionId,
-        payment_method: paymentMethod,
-      },
+    throw new Error(
+      getErrorMessage(error, "Không thể chọn phương thức thanh toán"),
     );
-    return response.data;
-  } catch (error) {
-    throw new Error(getErrorMessage(error, "Hoàn tất thanh toán thất bại"));
   }
 };
 
-export const createMomoPayment = async (orderId, amount) => {
+export const createMomoPayment = async (orderId) => {
   try {
-    const response = await apiClient.post("/customer/payment/momo-callback", {
+    const response = await apiClient.post("/customer/payment/momo/create", {
       orderId,
-      amount,
     });
     return response.data;
   } catch (error) {
@@ -67,6 +60,8 @@ export const checkMomoPaymentStatus = async (orderId) => {
     });
     return response.data;
   } catch (error) {
-    throw new Error(getErrorMessage(error, "Không thể kiểm tra trạng thái thanh toán"));
+    throw new Error(
+      getErrorMessage(error, "Không thể kiểm tra trạng thái thanh toán"),
+    );
   }
 };

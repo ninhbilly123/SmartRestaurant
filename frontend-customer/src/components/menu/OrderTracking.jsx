@@ -1,20 +1,57 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import {
-  CheckCircle,
-  Clock,
-  ChefHat,
-  DollarSign,
   ArrowLeft,
+  Banknote,
+  CheckCircle,
+  ChefHat,
+  Clock,
   CreditCard,
+  DollarSign,
   Loader,
 } from "lucide-react";
 import Swal from "sweetalert2";
 import CustomerService from "../../services/customerService";
 import { savePaymentSession } from "../../utils/tableSession";
 
-// URL Socket lấy từ env
 const SOCKET_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+
+const PAYMENT_METHODS = [
+  {
+    id: "cash",
+    name: "Tiền mặt",
+    description: "Nhân viên sẽ đến thu tiền tại bàn",
+    icon: Banknote,
+  },
+  {
+    id: "momo",
+    name: "MoMo",
+    description: "Thanh toán qua ví MoMo sau khi nhân viên chốt hóa đơn",
+    icon: CreditCard,
+  },
+  {
+    id: "vnpay",
+    name: "VNPay",
+    description: "Cổng thanh toán đang bảo trì",
+    icon: CreditCard,
+    disabled: true,
+  },
+  {
+    id: "zalopay",
+    name: "ZaloPay",
+    description: "Cổng thanh toán đang bảo trì",
+    icon: CreditCard,
+    disabled: true,
+  },
+];
+
+const formatCurrency = (amount) =>
+  new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+  }).format(amount || 0);
+
+const getOrderTotal = (order) => order?.total_amount || order?.totalAmount || 0;
 
 const OrderTracking = ({ orderId, onOrderMore, tableId }) => {
   const [order, setOrder] = useState(null);
@@ -24,7 +61,6 @@ const OrderTracking = ({ orderId, onOrderMore, tableId }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const socketRef = useRef();
 
-  // 1. Lấy dữ liệu đơn hàng & Kết nối Socket
   useEffect(() => {
     const fetchOrder = async () => {
       try {
@@ -40,23 +76,30 @@ const OrderTracking = ({ orderId, onOrderMore, tableId }) => {
     if (orderId) fetchOrder();
 
     socketRef.current = io(SOCKET_URL);
+    socketRef.current.on(`order_update_${orderId}`, setOrder);
 
-    // Lắng nghe sự kiện update từ server (tên event phải khớp với Backend)
-    socketRef.current.on(`order_update_${orderId}`, (updatedOrder) => {
-      setOrder(updatedOrder);
-    });
+    if (tableId) {
+      socketRef.current.on(`order_update_table_${tableId}`, (updatedOrder) => {
+        if (updatedOrder?.id === orderId) setOrder(updatedOrder);
+      });
+    }
 
-    return () => socketRef.current.disconnect();
-  }, [orderId]);
+    return () => socketRef.current?.disconnect();
+  }, [orderId, tableId]);
 
-  const handleRequestPayment = async () => {
-    // Kiểm tra tất cả món đã served chưa
-    const activeItems = (order?.items || []).filter(
-      (i) => i.status !== "cancelled",
-    );
-    const allServed =
-      activeItems.length > 0 && activeItems.every((i) => i.status === "served");
+  const activeItems = useMemo(
+    () => (order?.items || []).filter((item) => item.status !== "cancelled"),
+    [order],
+  );
 
+  const allServed = useMemo(
+    () =>
+      activeItems.length > 0 &&
+      activeItems.every((item) => item.status === "served"),
+    [activeItems],
+  );
+
+  const handleRequestPayment = () => {
     if (!allServed) {
       Swal.fire(
         "Chưa thể thanh toán",
@@ -66,7 +109,6 @@ const OrderTracking = ({ orderId, onOrderMore, tableId }) => {
       return;
     }
 
-    // Hiển thị modal chọn phương thức thanh toán
     setShowPaymentOptions(true);
   };
 
@@ -74,75 +116,50 @@ const OrderTracking = ({ orderId, onOrderMore, tableId }) => {
     setIsProcessing(true);
 
     try {
-      // Gửi yêu cầu thanh toán với phương thức đã chọn
-      await CustomerService.requestPayment(orderId, selectedPaymentMethod);
-
-      if (selectedPaymentMethod === "cash") {
-        // Tiền mặt: Thông báo và đợi nhân viên
+      if (order?.status !== "payment_pending") {
+        await CustomerService.requestPayment(orderId);
         setShowPaymentOptions(false);
         Swal.fire({
-          title: "Đã gửi yêu cầu!",
-          text: "Vui lòng đợi nhân viên đến thu tiền.",
+          title: "Đã gửi yêu cầu",
+          text: "Vui lòng đợi nhân viên xác nhận hóa đơn trước khi thanh toán.",
           icon: "success",
           confirmButtonColor: "#7e22ce",
         });
-      } else if (selectedPaymentMethod === "momo") {
-        // MoMo: Gọi API tạo thanh toán và redirect
-        try {
-          // Lưu thông tin bàn để redirect về sau
-          savePaymentSession(tableId, orderId);
-
-          const momoResponse = await CustomerService.createMomoPayment(
-            orderId,
-            order.totalAmount,
-          );
-
-          if (momoResponse && momoResponse.payUrl) {
-            // Redirect đến MoMo
-            window.location.href = momoResponse.payUrl;
-          } else {
-            throw new Error(
-              momoResponse?.message || "Không thể tạo thanh toán MoMo",
-            );
-          }
-        } catch (momoError) {
-          console.error("MoMo payment error:", momoError);
-          Swal.fire(
-            "Lỗi",
-            "Không thể tạo thanh toán MoMo: " + momoError.message,
-            "error",
-          );
-        }
-      } else {
-        // Các phương thức khác (mock)
-        setShowPaymentOptions(false);
-        Swal.fire({
-          title: "Đang xử lý...",
-          text: `Chuyển đến cổng thanh toán ${selectedPaymentMethod.toUpperCase()}`,
-          icon: "info",
-          timer: 2000,
-          showConfirmButton: false,
-        });
-
-        // Mock complete payment
-        setTimeout(async () => {
-          try {
-            await CustomerService.completePayment(
-              orderId,
-              `${selectedPaymentMethod.toUpperCase()}_${Date.now()}`,
-              selectedPaymentMethod,
-            );
-            Swal.fire("Thành công!", "Thanh toán hoàn tất.", "success");
-          } catch {
-            Swal.fire("Lỗi", "Không thể hoàn tất thanh toán.", "error");
-          }
-        }, 2000);
+        return;
       }
+
+      await CustomerService.selectPaymentMethod(orderId, selectedPaymentMethod);
+
+      if (selectedPaymentMethod === "momo") {
+        savePaymentSession(tableId, orderId);
+        const momoResponse = await CustomerService.createMomoPayment(orderId);
+
+        if (momoResponse?.payUrl) {
+          window.location.href = momoResponse.payUrl;
+          return;
+        }
+
+        throw new Error(momoResponse?.message || "Không thể tạo thanh toán MoMo");
+      }
+
+      setShowPaymentOptions(false);
+      Swal.fire({
+        title:
+          selectedPaymentMethod === "cash"
+            ? "Đã chọn tiền mặt"
+            : "Cổng thanh toán đang bảo trì",
+        text:
+          selectedPaymentMethod === "cash"
+            ? "Vui lòng đợi nhân viên đến thu tiền."
+            : "Vui lòng chọn phương thức thanh toán khác.",
+        icon: "info",
+        confirmButtonColor: "#7e22ce",
+      });
     } catch (err) {
       console.error("Payment request error:", err);
       Swal.fire(
         "Lỗi",
-        "Không gửi được yêu cầu thanh toán: " + err.message,
+        `Không thể xử lý yêu cầu thanh toán: ${err.message}`,
         "error",
       );
     } finally {
@@ -150,78 +167,48 @@ const OrderTracking = ({ orderId, onOrderMore, tableId }) => {
     }
   };
 
-  const paymentMethods = [
-    {
-      id: "cash",
-      name: "Tiền mặt",
-      icon: "💵",
-      description: "Nhân viên sẽ đến thu tiền",
-    },
-    {
-      id: "momo",
-      name: "MoMo",
-      icon: "🟣",
-      description: "Thanh toán qua ví MoMo",
-    },
-    {
-      id: "vnpay",
-      name: "VNPay",
-      icon: "🔵",
-      description: "Cổng thanh toán VNPay",
-    },
-    {
-      id: "zalopay",
-      name: "ZaloPay",
-      icon: "🔷",
-      description: "Thanh toán qua ZaloPay",
-    },
-  ];
-
-  const formatCurrency = (amount) =>
-    new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-    }).format(amount);
-
   const renderItemStatus = (status) => {
     switch (status) {
       case "pending":
         return (
-          <span className="text-yellow-600 bg-yellow-100 text-xs px-2 py-1 rounded-full flex items-center gap-1">
+          <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 px-2 py-1 text-xs text-yellow-700">
             <Clock size={12} /> Chờ duyệt
           </span>
         );
       case "preparing":
         return (
-          <span className="text-blue-600 bg-blue-100 text-xs px-2 py-1 rounded-full flex items-center gap-1">
+          <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-1 text-xs text-blue-700">
             <ChefHat size={12} /> Đang nấu
           </span>
         );
       case "served":
         return (
-          <span className="text-green-600 bg-green-100 text-xs px-2 py-1 rounded-full flex items-center gap-1">
+          <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-1 text-xs text-green-700">
             <CheckCircle size={12} /> Đã ra món
           </span>
         );
       default:
-        return <span className="text-gray-500 text-xs">{status}</span>;
+        return <span className="text-xs text-gray-500">{status}</span>;
     }
   };
 
-  if (loading)
-    return <div className="text-center p-10">Đang tải hóa đơn...</div>;
-  if (!order)
-    return <div className="text-center p-10">Không tìm thấy đơn hàng</div>;
+  if (loading) {
+    return <div className="p-10 text-center">Đang tải hóa đơn...</div>;
+  }
+
+  if (!order) {
+    return <div className="p-10 text-center">Không tìm thấy đơn hàng</div>;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
-      {/* Header */}
-      <div className="bg-white p-4 shadow-sm sticky top-0 z-10 flex items-center justify-between">
+      <div className="sticky top-0 z-10 flex items-center justify-between bg-white p-4 shadow-sm">
         <button
           onClick={onOrderMore}
-          className="flex items-center text-blue-600 font-medium"
+          className="flex items-center font-medium text-blue-600"
         >
-          <ArrowLeft size={20} className="mr-1" /> Gọi thêm món
+          <ArrowLeft size={20} className="mr-1" />
+          Gọi thêm món
         </button>
         <div className="text-right">
           <p className="text-xs text-gray-500">Đơn hàng</p>
@@ -231,28 +218,29 @@ const OrderTracking = ({ orderId, onOrderMore, tableId }) => {
         </div>
       </div>
 
-      {/* List Món Ăn */}
-      <div className="p-4 space-y-4">
-        <div className="bg-white rounded-xl shadow-sm p-4">
-          <h3 className="font-bold text-lg mb-3 border-b pb-2">
+      <div className="space-y-4 p-4">
+        <div className="rounded-xl bg-white p-4 shadow-sm">
+          <h3 className="mb-3 border-b pb-2 text-lg font-bold">
             Danh sách món
           </h3>
-          {order.items?.map((item, idx) => (
+          {activeItems.map((item) => (
             <div
-              key={idx}
-              className="flex justify-between items-start py-3 border-b border-dashed last:border-0"
+              key={item.id || `${item.menu_item_id}-${item.created_at}`}
+              className="flex items-start justify-between border-b border-dashed py-3 last:border-0"
             >
               <div className="flex-1">
-                <div className="flex justify-between">
+                <div className="flex justify-between gap-4">
                   <span className="font-medium text-gray-800">
-                    {item.quantity}x {item.name || item.menuItem?.name}
+                    {item.quantity}x {item.name || item.menu_item?.name}
                   </span>
                   <span className="text-gray-600">
-                    {formatCurrency(item.price * item.quantity)}
+                    {formatCurrency(
+                      (item.price_at_order || item.price || 0) * item.quantity,
+                    )}
                   </span>
                 </div>
                 {item.notes && (
-                  <p className="text-xs text-gray-400 italic mt-1">
+                  <p className="mt-1 text-xs italic text-gray-400">
                     Ghi chú: {item.notes}
                   </p>
                 )}
@@ -262,83 +250,92 @@ const OrderTracking = ({ orderId, onOrderMore, tableId }) => {
           ))}
         </div>
 
-        {/* Tổng tiền */}
-        <div className="bg-white rounded-xl shadow-sm p-4">
-          <div className="flex justify-between items-center text-lg font-bold">
+        <div className="rounded-xl bg-white p-4 shadow-sm">
+          <div className="flex items-center justify-between text-lg font-bold">
             <span>Tổng tạm tính:</span>
             <span className="text-orange-600">
-              {formatCurrency(order.totalAmount)}
+              {formatCurrency(getOrderTotal(order))}
             </span>
           </div>
         </div>
       </div>
 
-      {/* Bottom Actions */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 flex gap-3">
+      <div className="fixed inset-x-0 bottom-0 flex gap-3 border-t bg-white p-4">
         <button
           onClick={onOrderMore}
-          className="flex-1 py-3 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition"
+          className="flex-1 rounded-xl bg-gray-100 py-3 font-bold text-gray-700 transition hover:bg-gray-200"
         >
-          + Gọi thêm
+          Gọi thêm
         </button>
         <button
           onClick={handleRequestPayment}
-          className="flex-1 py-3 bg-purple-600 text-white font-bold rounded-xl shadow-lg hover:bg-purple-700 flex justify-center items-center gap-2"
+          className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-purple-600 py-3 font-bold text-white shadow-lg hover:bg-purple-700"
         >
-          <DollarSign size={20} /> Thanh toán
+          <DollarSign size={20} />
+          Thanh toán
         </button>
       </div>
 
-      {/* Payment Method Modal */}
       {showPaymentOptions && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center z-50">
-          <div className="bg-white w-full max-w-lg rounded-t-2xl p-6 animate-slide-up">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                <CreditCard size={24} /> Chọn phương thức thanh toán
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50">
+          <div className="w-full max-w-lg rounded-t-2xl bg-white p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="flex items-center gap-2 text-xl font-bold text-gray-800">
+                <CreditCard size={24} />
+                Chọn phương thức thanh toán
               </h3>
               <button
                 onClick={() => setShowPaymentOptions(false)}
-                className="text-gray-400 hover:text-gray-600 text-2xl"
+                className="text-2xl text-gray-400 hover:text-gray-600"
               >
-                ×
+                x
               </button>
             </div>
 
-            <div className="space-y-3 mb-6">
-              {paymentMethods.map((method) => (
-                <button
-                  key={method.id}
-                  onClick={() => setSelectedPaymentMethod(method.id)}
-                  disabled={isProcessing}
-                  className={`w-full p-4 rounded-xl border-2 transition-all flex items-center gap-4 ${
-                    selectedPaymentMethod === method.id
-                      ? "border-purple-500 bg-purple-50"
-                      : "border-gray-200 hover:border-gray-300"
-                  } ${isProcessing ? "opacity-50 cursor-not-allowed" : ""}`}
-                >
-                  <span className="text-3xl">{method.icon}</span>
-                  <div className="text-left">
-                    <div className="font-bold text-gray-800">{method.name}</div>
-                    <div className="text-sm text-gray-500">
-                      {method.description}
+            <div className="mb-6 space-y-3">
+              {PAYMENT_METHODS.map((method) => {
+                const Icon = method.icon;
+
+                return (
+                  <button
+                    key={method.id}
+                    onClick={() => setSelectedPaymentMethod(method.id)}
+                    disabled={isProcessing || method.disabled}
+                    className={`flex w-full items-center gap-4 rounded-xl border-2 p-4 text-left transition ${
+                      selectedPaymentMethod === method.id
+                        ? "border-purple-500 bg-purple-50"
+                        : "border-gray-200 hover:border-gray-300"
+                    } ${
+                      isProcessing || method.disabled
+                        ? "cursor-not-allowed opacity-50"
+                        : ""
+                    }`}
+                  >
+                    <Icon size={28} />
+                    <div>
+                      <div className="font-bold text-gray-800">
+                        {method.name}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {method.description}
+                      </div>
                     </div>
-                  </div>
-                  {selectedPaymentMethod === method.id && (
-                    <CheckCircle
-                      size={24}
-                      className="ml-auto text-purple-600"
-                    />
-                  )}
-                </button>
-              ))}
+                    {selectedPaymentMethod === method.id && (
+                      <CheckCircle
+                        size={24}
+                        className="ml-auto text-purple-600"
+                      />
+                    )}
+                  </button>
+                );
+              })}
             </div>
 
-            <div className="bg-gray-50 rounded-xl p-4 mb-4">
-              <div className="flex justify-between items-center text-lg font-bold">
+            <div className="mb-4 rounded-xl bg-gray-50 p-4">
+              <div className="flex items-center justify-between text-lg font-bold">
                 <span>Tổng thanh toán:</span>
                 <span className="text-purple-600">
-                  {formatCurrency(order.totalAmount)}
+                  {formatCurrency(getOrderTotal(order))}
                 </span>
               </div>
             </div>
@@ -346,11 +343,7 @@ const OrderTracking = ({ orderId, onOrderMore, tableId }) => {
             <button
               onClick={handleConfirmPayment}
               disabled={isProcessing}
-              className={`w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all ${
-                isProcessing
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg"
-              }`}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-purple-600 py-4 text-lg font-bold text-white shadow-lg transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:bg-gray-400"
             >
               {isProcessing ? (
                 <>

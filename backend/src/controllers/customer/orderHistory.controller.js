@@ -1,16 +1,43 @@
-import OrderService from "../../services/orderHistory.service.js";
-
-import { createOrderSchema } from "../../validators/order.validation.js";
 import logger from "../../config/logger.js";
+import OrderService from "../../services/orderHistory.service.js";
+import { createOrderSchema } from "../../validators/order.validation.js";
 
+const getCustomerId = (req) => req.user?.id || req.user?.uid || null;
+
+const emitOrderCreated = (req, order, tableId) => {
+  if (!req.io) return;
+
+  req.io.emit("new_order_created", order);
+  req.io.emit("order_status_updated", order);
+  req.io.emit(`order_update_table_${tableId}`, order);
+  logger.info(`Socket sent: New Order for Table ${tableId}`);
+};
+
+const handleError = (res, error, fallback = "Loi he thong") => {
+  if (error.name === "SequelizeForeignKeyConstraintError") {
+    return res.status(400).json({
+      success: false,
+      error: "Du lieu khong hop le",
+      message: "Ma ban khong ton tai. Vui long quet lai ma QR.",
+    });
+  }
+
+  return res.status(error.status || 500).json({
+    success: false,
+    error: fallback,
+    message: error.message,
+  });
+};
 
 export const createOrder = async (req, res) => {
   try {
-    const customerID = req.user?.id || req.user?.uid || null;
-    const { error, value } = createOrderSchema.validate(req.body);
+    const customerID = getCustomerId(req);
+    const { error, value } = createOrderSchema.validate(req.body, {
+      abortEarly: false,
+      stripUnknown: true,
+    });
 
     if (error) {
-      //Trả vè nếu có lỗi về kiểu dữ liệu
       return res.status(400).json({
         success: false,
         error: error.details[0].message,
@@ -20,62 +47,22 @@ export const createOrder = async (req, res) => {
     const order = await OrderService.createOrder({
       customer_id: customerID,
       table_id: value.table_id,
-      total_amount: value.total_amount,
-      items: value.items, // <---  Phải truyền items xuống
-      note: value.note || ""
+      items: value.items,
+      note: value.note || "",
     });
 
-    if (req.io) {
-        // Bắn tín hiệu chung "Có đơn mới"
-        req.io.emit('new_order_created', order); 
-        req.io.emit('order_status_updated', order);
-        
-        // Bắn riêng cho bàn đó (để máy khách tự cập nhật trạng thái "Đang chờ xác nhận")
-        req.io.emit(`order_update_table_${value.table_id}`, {
-            ...order.toJSON ? order.toJSON() : order, 
-            status: 'pending'
-        });
-        
-        logger.info(`Socket sent: New Order for Table ${value.table_id}`);
-    }
+    emitOrderCreated(req, order, value.table_id);
 
     return res.status(201).json({
       success: true,
       message: customerID
-        ? "Đặt món thành viên thành công"
-        : "Khách vãng lai đặt món thành công",
+        ? "Dat mon thanh vien thanh cong"
+        : "Khach vang lai dat mon thanh cong",
       data: order,
     });
   } catch (error) {
-    console.error("[Order Controller Error]:", error);
-
-    if (error.name === "SequelizeForeignKeyConstraintError") {
-      return res.status(400).json({
-        success: false,
-        error: "Dữ liệu không hợp lệ",
-        message:
-          "Mã bàn không tồn tại trong hệ thống. Vui lòng quét lại mã QR.",
-      });
-    }
-
-    // Xử lý lỗi nếu cột customer_id trong DB chưa được chỉnh thành ALLOW NULL
-    if (
-      error.name === "SequelizeDatabaseError" &&
-      error.message.includes("not-null")
-    ) {
-      return res.status(500).json({
-        success: false,
-        error: "Lỗi cấu trúc dữ liệu",
-        message:
-          "Hệ thống chưa cho phép khách vãng lai đặt món (Cột customer_id đang bắt buộc).",
-      });
-    }
-
-    return res.status(500).json({
-      success: false,
-      error: "Lỗi hệ thống",
-      message: error.message,
-    });
+    logger.error("[Order Controller] createOrder error:", error);
+    return handleError(res, error);
   }
 };
 
@@ -83,11 +70,10 @@ export const getMyOrders = async (req, res) => {
   try {
     const customerID = req.user?.uid || req.user?.id;
 
-    //Chỉ có thể xem lại lịch sử nếu như khách hàng đã đăng nhập
     if (!customerID) {
       return res.status(401).json({
         success: false,
-        error: "Vui lòng đăng nhập để xem lịch sử đơn hàng",
+        error: "Vui long dang nhap de xem lich su don hang",
       });
     }
 
@@ -98,29 +84,23 @@ export const getMyOrders = async (req, res) => {
       data: orders,
     });
   } catch (error) {
-    return res.status(500).json({ success: false, error: error.message });
+    return res
+      .status(error.status || 500)
+      .json({ success: false, error: error.message });
   }
 };
 
 export const getOrderById = async (req, res) => {
   try {
-    const customerID = req.user?.uid || req.user?.id;
-    const orderId = req.params.id;
-
-    //Chỉ có thể xem lại lịch sử nếu như khách hàng đã đăng nhập
-    if (!customerID) {
-      return res.status(401).json({
-        success: false,
-        error: "Vui lòng đăng nhập để xem lịch sử đơn hàng",
-      });
-    }
-    const order = await OrderService.getOrderById(customerID, orderId);
+    const order = await OrderService.getOrderById(null, req.params.id);
 
     return res.status(200).json({
       success: true,
       data: order,
     });
   } catch (error) {
-    return res.status(500).json({ success: false, error: error.message });
+    return res
+      .status(error.status || 500)
+      .json({ success: false, error: error.message });
   }
 };

@@ -18,6 +18,13 @@ export const verifyToken = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, env.jwt.secret);
+
+    if (!decoded.id) {
+      return res.status(401).json({
+        message: "Token không thuộc tài khoản nhân viên",
+      });
+    }
+
     const user = await db.User.findByPk(decoded.id, {
       attributes: ["id", "username", "role", "full_name", "is_active"],
     });

@@ -28,7 +28,7 @@ VerifiedEmail.init(
       defaultValue: "email",
     },
     otp_code: {
-      type: DataTypes.STRING(6),
+      type: DataTypes.STRING(255),
       allowNull: true,
     },
     otp_expires: {
@@ -69,7 +69,7 @@ VerifiedEmail.init(
     ],
     hooks: {
       beforeValidate: (verifiedEmail) => {
-        if (verifiedEmail.otp_code) {
+        if (verifiedEmail.otp_code && /^\d{1,6}$/.test(verifiedEmail.otp_code)) {
           verifiedEmail.otp_code = verifiedEmail.otp_code.padStart(6, "0");
         }
       },

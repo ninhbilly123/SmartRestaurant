@@ -1,142 +1,231 @@
+import { Op } from "sequelize";
+import sequelize from "../config/database.js";
+import MenuItem from "../models/menuItem.js";
+import MenuItemModifierGroup from "../models/menuItemModifierGroup.js";
 import ModifierGroup from "../models/modifierGroup.js";
 import ModifierOption from "../models/modifierOption.js";
-import MenuItemModifierGroup from "../models/menuItemModifierGroup.js";
-import MenuItem from "../models/menuItem.js";
-import { Op } from "sequelize";
+
+const normalizeGroupIds = (groupIds = []) => [...new Set(groupIds.filter(Boolean))];
 
 export class ModifierService {
-	static async createGroup(data) {
-		//Check for existed group
-		const existingGroup = await ModifierGroup.findOne({
-			where: {
-				name: data.name
-			},
-		});
-		if (existingGroup) {
-			throw new Error("Modifier already exist");
-		}
+  static async getAllGroups() {
+    return ModifierGroup.findAll({
+      include: [
+        {
+          model: ModifierOption,
+          as: "options",
+          required: false,
+        },
+      ],
+      order: [
+        ["display_order", "ASC"],
+        ["created_at", "DESC"],
+      ],
+    });
+  }
 
-		//Create group
-		return await ModifierGroup.create({
-			name: data.name,
-			selection_type: data.selection_type,
-			is_required: data.is_required,
-			min_selections: data.min_selections,
-			max_selections: data.max_selections,
-			display_order: data.display_order,
-			status: data.status,
-		});
-	}
+  static async getGroupById(id) {
+    const group = await ModifierGroup.findByPk(id, {
+      include: [
+        {
+          model: ModifierOption,
+          as: "options",
+          required: false,
+        },
+      ],
+    });
 
-	static async updateGroup(id, data) {
-		//Check if group exists
-		const foundGroup = await ModifierGroup.findByPk(id);
-		if (!foundGroup) {
-			throw new Error("Modifier does not exist");
-		}
+    if (!group) {
+      const error = new Error("Modifier group not found");
+      error.status = 404;
+      throw error;
+    }
 
-		//Check if group name is used
-		const existingGroupName = await ModifierGroup.findOne({
-			where: {
-				name: data.name,
-				id: { [Op.ne]: id },
-			},
-		});
-		if (existingGroupName) {
-			throw new Error("Modifier name already exist");
-		}
+    return group;
+  }
 
-		//Update fields in data
-		return await foundGroup.update(data);
-	}
+  static async createGroup(data) {
+    const existingGroup = await ModifierGroup.findOne({
+      where: { name: data.name },
+    });
 
-	static async createOption(groupId, data) {
-		// Kiểm tra group tồn tại
-		const group = await ModifierGroup.findByPk(groupId);
-		if (!group) {
-			throw new Error("Modifier group not found");
-		}
+    if (existingGroup) {
+      throw new Error("Modifier already exists");
+    }
 
-		//Check for existed option
-		const existingOption = await ModifierOption.findOne({
-			where: {
-				name: data.name,
-				group_id: groupId, //different groups
-			},
-		});
+    return ModifierGroup.create({
+      name: data.name,
+      selection_type: data.selection_type,
+      is_required: data.is_required,
+      min_selections: data.min_selections,
+      max_selections: data.max_selections,
+      display_order: data.display_order,
+      status: data.status,
+    });
+  }
 
-		if (existingOption) {
-			throw new Error("Option already exist");
-		}
+  static async updateGroup(id, data) {
+    const foundGroup = await ModifierGroup.findByPk(id);
+    if (!foundGroup) {
+      throw new Error("Modifier does not exist");
+    }
 
-		//Create option
-		return await ModifierOption.create({
-			group_id: groupId,
-			name: data.name,
-			price_adjustment: data.price_adjustment,
-			status: data.status,
-		});
-	}
+    if (data.name && data.name !== foundGroup.name) {
+      const existingGroupName = await ModifierGroup.findOne({
+        where: {
+          name: data.name,
+          id: { [Op.ne]: id },
+        },
+      });
 
-	static async updateOption(id, data) {
-		//Check if option exists
-		const foundOption = await ModifierOption.findByPk(id);
-		if (!foundOption) {
-			throw new Error("Option not found");
-		}
+      if (existingGroupName) {
+        throw new Error("Modifier name already exists");
+      }
+    }
 
-		//Check if option name is used
-		const existingOptionName = await ModifierOption.findOne({
-			where: {
-				name: data.name,
-				group_id: foundOption.group_id, //different groups
-				id: { [Op.ne]: id },
-			},
-		});
+    return foundGroup.update(data);
+  }
 
-		if (existingOptionName) {
-			throw new Error("Option name already exist");
-		}
+  static async createOption(groupId, data) {
+    const group = await ModifierGroup.findByPk(groupId);
+    if (!group) {
+      throw new Error("Modifier group not found");
+    }
 
-		return await foundOption.update(data);
-	}
+    const existingOption = await ModifierOption.findOne({
+      where: {
+        name: data.name,
+        group_id: groupId,
+      },
+    });
 
-	static async attachGroupsToItem(menuItemId, groupIds) {
-		// Kiểm tra menu item tồn tại (defaultScope tự động filter is_deleted = false)
-		const menuItem = await MenuItem.findByPk(menuItemId);
-		if (!menuItem) {
-			throw new Error("Menu item not found");
-		}
+    if (existingOption) {
+      throw new Error("Option already exists");
+    }
 
-		// Xóa các liên kết cũ
-		await MenuItemModifierGroup.destroy({
-			where: { menu_item_id: menuItemId },
-		});
+    return ModifierOption.create({
+      group_id: groupId,
+      name: data.name,
+      price_adjustment: data.price_adjustment,
+      status: data.status,
+    });
+  }
 
-		// Nếu groupIds rỗng => chỉ detach tất cả
-		if (!groupIds || groupIds.length === 0) {
-			return [];
-		}
+  static async updateOption(id, data) {
+    const foundOption = await ModifierOption.findByPk(id);
+    if (!foundOption) {
+      throw new Error("Option not found");
+    }
 
-		// Kiểm tra tất cả groups tồn tại và cùng restaurant với menu item
-		const groups = await ModifierGroup.findAll({
-			where: {
-				id: groupIds,
-			},
-		});
+    if (data.name && data.name !== foundOption.name) {
+      const existingOptionName = await ModifierOption.findOne({
+        where: {
+          name: data.name,
+          group_id: foundOption.group_id,
+          id: { [Op.ne]: id },
+        },
+      });
 
-		if (groups.length !== groupIds.length) {
-			throw new Error(
-				"Some modifier groups not found or belong to different restaurant"
-			);
-		}
+      if (existingOptionName) {
+        throw new Error("Option name already exists");
+      }
+    }
 
-		// Tạo các liên kết mới
-		const records = groupIds.map((groupId) => ({
-			menu_item_id: menuItemId,
-			group_id: groupId,
-		}));
+    return foundOption.update(data);
+  }
 
-		return await MenuItemModifierGroup.bulkCreate(records);
-	}
+  static async attachGroupsToItem(menuItemId, groupIds) {
+    const normalizedGroupIds = normalizeGroupIds(groupIds);
+    const transaction = await sequelize.transaction();
+
+    try {
+      const menuItem = await MenuItem.findByPk(menuItemId, { transaction });
+      if (!menuItem) {
+        throw new Error("Menu item not found");
+      }
+
+      if (normalizedGroupIds.length > 0) {
+        const groups = await ModifierGroup.findAll({
+          where: {
+            id: { [Op.in]: normalizedGroupIds },
+          },
+          transaction,
+        });
+
+        if (groups.length !== normalizedGroupIds.length) {
+          throw new Error("Some modifier groups were not found");
+        }
+      }
+
+      await MenuItemModifierGroup.destroy({
+        where: { menu_item_id: menuItemId },
+        transaction,
+      });
+
+      if (normalizedGroupIds.length === 0) {
+        await transaction.commit();
+        return [];
+      }
+
+      const records = normalizedGroupIds.map((groupId) => ({
+        menu_item_id: menuItemId,
+        group_id: groupId,
+      }));
+
+      const created = await MenuItemModifierGroup.bulkCreate(records, {
+        transaction,
+      });
+
+      await transaction.commit();
+      return created;
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    }
+  }
+
+  static async deleteGroup(id) {
+    const transaction = await sequelize.transaction();
+    let committed = false;
+
+    try {
+      const group = await ModifierGroup.findByPk(id, { transaction });
+      if (!group) {
+        const error = new Error("Modifier group not found");
+        error.status = 404;
+        throw error;
+      }
+
+      await ModifierOption.update(
+        { status: "inactive" },
+        { where: { group_id: id }, transaction },
+      );
+      await MenuItemModifierGroup.destroy({
+        where: { group_id: id },
+        transaction,
+      });
+      await group.update({ status: "inactive" }, { transaction });
+
+      await transaction.commit();
+      committed = true;
+      return group;
+    } catch (error) {
+      if (!committed) {
+        await transaction.rollback();
+      }
+      throw error;
+    }
+  }
+
+  static async deleteOption(id) {
+    const option = await ModifierOption.findByPk(id);
+    if (!option) {
+      const error = new Error("Modifier option not found");
+      error.status = 404;
+      throw error;
+    }
+
+    await option.update({ status: "inactive" });
+    return option;
+  }
 }

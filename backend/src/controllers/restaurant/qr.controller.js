@@ -2,6 +2,7 @@ import Table from "../../models/table.js";
 import { TableService } from "../../services/table.service.js";
 import QRService from "../../services/qr.service.js";
 import { Op } from "sequelize";
+import logger from "../../config/logger.js";
 
 /**
  * Generate QR code cho một table
@@ -33,7 +34,7 @@ export const generateQRCode = async (req, res) => {
 			},
 		});
 	} catch (error) {
-		console.error("Error generating QR code:", error);
+		logger.error("Error generating QR code:", error);
 
 		if (error.message === "Table not found") {
 			return res.status(404).json({
@@ -80,7 +81,7 @@ export const regenerateQRCode = async (req, res) => {
 			},
 		});
 	} catch (error) {
-		console.error("Error regenerating QR code:", error);
+		logger.error("Error regenerating QR code:", error);
 
 		if (error.message === "Table not found") {
 			return res.status(404).json({
@@ -113,7 +114,7 @@ export const bulkRegenerateQRCodes = async (req, res) => {
 			data: results,
 		});
 	} catch (error) {
-		console.error("Error bulk regenerating QR codes:", error);
+		logger.error("Error bulk regenerating QR codes:", error);
 		res.status(500).json({
 			success: false,
 			message: "Failed to bulk regenerate QR codes",
@@ -172,7 +173,7 @@ export const downloadQRCode = async (req, res) => {
 			res.send(qrBuffer);
 		}
 	} catch (error) {
-		console.error("Error downloading QR code:", error);
+		logger.error("Error downloading QR code:", error);
 		res.status(500).json({
 			success: false,
 			message: "Failed to download QR code",
@@ -226,7 +227,7 @@ export const downloadAllQRCodes = async (req, res) => {
 			res.send(zipBuffer);
 		}
 	} catch (error) {
-		console.error("Error downloading all QR codes:", error);
+		logger.error("Error downloading all QR codes:", error);
 		res.status(500).json({
 			success: false,
 			message: "Failed to download QR codes",
@@ -294,7 +295,7 @@ export const verifyQRToken = async (req, res) => {
 		// Check if current token matches
 		if (table.qr_token !== token) {
 			// Log security event
-			console.warn(
+			logger.warn(
 				`[SECURITY] Old/invalid QR token used for table ${table.table_number}`
 			);
 
@@ -323,7 +324,7 @@ export const verifyQRToken = async (req, res) => {
 			},
 		});
 	} catch (error) {
-		console.error("Error verifying QR token:", error);
+		logger.error("Error verifying QR token:", error);
 		res.status(500).json({
 			success: false,
 			message: "Failed to verify QR code",
@@ -372,7 +373,7 @@ export const getQRPreview = async (req, res) => {
 			},
 		});
 	} catch (error) {
-		console.error("Error getting QR preview:", error);
+		logger.error("Error getting QR preview:", error);
 		res.status(500).json({
 			success: false,
 			message: "Failed to get QR preview",

@@ -1,43 +1,52 @@
-// src/routes/customer/review.routes.js
-import express from 'express';
+import express from "express";
 import {
   createReview,
   getMenuItemReviews,
   getReviewableItems,
   updateReview,
-  deleteReview
-} from '../../controllers/customer/review.controller.js';
+  deleteReview,
+} from "../../controllers/customer/review.controller.js";
 import {
   optionalCustomerAuth,
   requireCustomerAuth,
-} from '../../middlewares/authCustomer.middleware.js';
-import { requireOrderAccess } from '../../middlewares/customerAccess.middleware.js';
+} from "../../middlewares/authCustomer.middleware.js";
+import { requireOrderAccess } from "../../middlewares/customerAccess.middleware.js";
+import { validate } from "../../middlewares/validator.js";
+import { reviewSchemas } from "../../validators/review.validator.js";
 
 const router = express.Router();
 
-// GET /api/customer/reviews/menu-item/:menuItemId - Get reviews for a menu item
-router.get('/menu-item/:menuItemId', getMenuItemReviews);
+router.get("/menu-item/:menuItemId", getMenuItemReviews);
 
-// POST /api/customer/reviews - Create a new review
 router.post(
-  '/',
+  "/",
   optionalCustomerAuth,
+  validate(reviewSchemas.createReview),
   requireOrderAccess((req) => req.body.order_id),
-  createReview
+  createReview,
 );
 
-// GET /api/customer/reviews/order/:orderId/can-review - Check reviewable items
 router.get(
-  '/order/:orderId/can-review',
+  "/order/:orderId/can-review",
   optionalCustomerAuth,
+  validate(reviewSchemas.orderIdParam, "params"),
   requireOrderAccess((req) => req.params.orderId),
-  getReviewableItems
+  getReviewableItems,
 );
 
-// PUT /api/customer/reviews/:id - Update own review
-router.put('/:id', requireCustomerAuth, updateReview);
+router.put(
+  "/:id",
+  requireCustomerAuth,
+  validate(reviewSchemas.reviewIdParam, "params"),
+  validate(reviewSchemas.updateReview),
+  updateReview,
+);
 
-// DELETE /api/customer/reviews/:id - Delete own review
-router.delete('/:id', requireCustomerAuth, deleteReview);
+router.delete(
+  "/:id",
+  requireCustomerAuth,
+  validate(reviewSchemas.reviewIdParam, "params"),
+  deleteReview,
+);
 
 export default router;

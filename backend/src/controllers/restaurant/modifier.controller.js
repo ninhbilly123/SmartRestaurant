@@ -1,23 +1,9 @@
 import logger from "../../config/logger.js";
-import ModifierGroup from "../../models/modifierGroup.js";
-import ModifierOption from "../../models/modifierOption.js";
 import { ModifierService } from "../../services/modifier.service.js";
 
 export const getAllModifierGroups = async (req, res) => {
   try {
-    const groups = await ModifierGroup.findAll({
-      include: [
-        {
-          model: ModifierOption,
-          as: "options",
-          required: false,
-        },
-      ],
-      order: [
-        ["display_order", "ASC"],
-        ["created_at", "DESC"],
-      ],
-    });
+    const groups = await ModifierService.getAllGroups();
 
     return res.json({
       success: true,
@@ -32,22 +18,7 @@ export const getAllModifierGroups = async (req, res) => {
 
 export const getModifierGroupById = async (req, res) => {
   try {
-    const group = await ModifierGroup.findByPk(req.params.id, {
-      include: [
-        {
-          model: ModifierOption,
-          as: "options",
-          required: false,
-        },
-      ],
-    });
-
-    if (!group) {
-      return res.status(404).json({
-        success: false,
-        message: "Modifier group not found",
-      });
-    }
+    const group = await ModifierService.getGroupById(req.params.id);
 
     return res.json({
       success: true,
@@ -56,7 +27,7 @@ export const getModifierGroupById = async (req, res) => {
     });
   } catch (error) {
     logger.error("Error getting modifier group:", error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(error.status || 500).json({ success: false, error: error.message });
   }
 };
 
@@ -144,16 +115,7 @@ export const attachModifierGroup = async (req, res) => {
 
 export const deleteModifierGroup = async (req, res) => {
   try {
-    const group = await ModifierGroup.findByPk(req.params.id);
-    if (!group) {
-      return res.status(404).json({
-        success: false,
-        message: "Modifier group not found",
-      });
-    }
-
-    await ModifierOption.destroy({ where: { group_id: req.params.id } });
-    await group.destroy();
+    await ModifierService.deleteGroup(req.params.id);
 
     return res.json({
       success: true,
@@ -161,21 +123,13 @@ export const deleteModifierGroup = async (req, res) => {
     });
   } catch (error) {
     logger.error("Error deleting modifier group:", error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(error.status || 500).json({ success: false, error: error.message });
   }
 };
 
 export const deleteModifierOption = async (req, res) => {
   try {
-    const option = await ModifierOption.findByPk(req.params.id);
-    if (!option) {
-      return res.status(404).json({
-        success: false,
-        message: "Modifier option not found",
-      });
-    }
-
-    await option.destroy();
+    await ModifierService.deleteOption(req.params.id);
 
     return res.json({
       success: true,
@@ -183,6 +137,6 @@ export const deleteModifierOption = async (req, res) => {
     });
   } catch (error) {
     logger.error("Error deleting modifier option:", error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(error.status || 500).json({ success: false, error: error.message });
   }
 };

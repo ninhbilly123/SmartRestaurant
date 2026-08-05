@@ -8,7 +8,10 @@ import {
   optionalCustomerAuth,
   requireCustomerAuth,
 } from "../../middlewares/authCustomer.middleware.js";
-import { requireTableAccess } from "../../middlewares/customerAccess.middleware.js";
+import {
+  requireOrderAccess,
+  requireTableAccess,
+} from "../../middlewares/customerAccess.middleware.js";
 
 const router = express.Router()
 
@@ -19,6 +22,11 @@ router.post("/", optionalCustomerAuth, requireTableAccess, createOrder);
 router.get("/", requireCustomerAuth, getMyOrders);
 
 // GET /api/customer/orders/:id
-router.get("/:id", requireCustomerAuth, getOrderById);
+router.get(
+  "/:id",
+  optionalCustomerAuth,
+  requireOrderAccess((req) => req.params.id),
+  getOrderById
+);
 
 export default router;

@@ -50,26 +50,6 @@ export const selectPaymentMethod = async (req, res) => {
   }
 };
 
-export const completePayment = async (req, res) => {
-  try {
-    const order = await paymentService.completePayment({
-      io: req.io,
-      orderId: req.params.orderId,
-      paymentMethod: req.body.payment_method,
-      transactionId: req.body.transaction_id,
-    });
-
-    return res.json({
-      success: true,
-      message: "Thanh toán thành công",
-      data: order,
-    });
-  } catch (error) {
-    logger.error("Complete payment error:", error);
-    return handleError(res, error, "Lỗi máy chủ khi hoàn tất thanh toán");
-  }
-};
-
 export const vnpayCallback = async (req, res) => {
   try {
     const redirectUrl = await paymentService.handleVnpayCallback({

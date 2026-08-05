@@ -1,8 +1,14 @@
-import { Op } from "sequelize";
+import { Op, Transaction } from "sequelize";
 import db from "../models/index.js";
+import { ORDER_STATUSES, PAYMENT_METHODS } from "../models/order.js";
 
-const { Order, OrderItem, OrderItemModifier, MenuItem, ModifierOption, Table } =
+const { Order, OrderItem, OrderItemModifier, MenuItem, ModifierOption, Table, sequelize } =
   db;
+
+const DIRECT_STATUS_BY_SCOPE = {
+  kitchen: ["preparing", "ready"],
+  waiter: ["confirmed", "served", "cancelled"],
+};
 
 const ORDER_LIST_INCLUDE = [
   {
@@ -50,12 +56,16 @@ const FULL_ORDER_INCLUDE = [
   { model: Table, as: "table" },
 ];
 
-const assertOrder = async (orderId) => {
-  const order = await Order.findByPk(orderId);
+const createError = (message, status = 400) => {
+  const error = new Error(message);
+  error.status = status;
+  return error;
+};
+
+const assertOrder = async (orderId, options = {}) => {
+  const order = await Order.findByPk(orderId, options);
   if (!order) {
-    const error = new Error("Không tìm thấy đơn hàng");
-    error.status = 404;
-    throw error;
+    throw createError("Khong tim thay don hang", 404);
   }
 
   return order;
@@ -73,97 +83,20 @@ const emitOrderUpdate = (io, order) => {
   io.emit("order_status_updated", order);
 };
 
-export const getAllOrders = async () => {
-  return Order.findAll({
-    where: {
-      status: {
-        [Op.notIn]: ["completed", "cancelled"],
-      },
-    },
-    include: ORDER_LIST_INCLUDE,
-    order: [["created_at", "DESC"]],
-  });
+const calculateItemTotal = (item) => {
+  const basePrice = Number(item.price_at_order || item.menu_item?.price || 0);
+  const modifiersTotal = (item.modifiers || []).reduce(
+    (sum, modifier) =>
+      sum + Number(modifier.price || modifier.modifier_option?.price_adjustment || 0),
+    0,
+  );
+
+  return (basePrice + modifiersTotal) * Number(item.quantity || 0);
 };
 
-export const updateOrderStatus = async ({ io, orderId, reason, status }) => {
-  const order = await assertOrder(orderId);
-  let finalOrderStatus = status;
-
-  if (status === "confirmed") {
-    await OrderItem.update(
-      { status: "confirmed" },
-      { where: { order_id: orderId, status: "pending" } },
-    );
-    finalOrderStatus = "confirmed";
-  } else if (status === "preparing") {
-    await OrderItem.update(
-      { status: "preparing" },
-      { where: { order_id: orderId, status: "confirmed" } },
-    );
-    finalOrderStatus = "preparing";
-  } else if (status === "ready") {
-    await OrderItem.update(
-      { status: "ready" },
-      { where: { order_id: orderId, status: "preparing" } },
-    );
-
-    const countNotReady = await OrderItem.count({
-      where: {
-        order_id: orderId,
-        status: { [Op.notIn]: ["ready", "cancelled", "served"] },
-      },
-    });
-
-    finalOrderStatus = countNotReady === 0 ? "ready" : order.status;
-  } else if (status === "served") {
-    await OrderItem.update(
-      { status: "served" },
-      { where: { order_id: orderId, status: "ready" } },
-    );
-
-    const countNotServed = await OrderItem.count({
-      where: {
-        order_id: orderId,
-        status: { [Op.notIn]: ["served", "cancelled"] },
-      },
-    });
-
-    finalOrderStatus = countNotServed === 0 ? "served" : order.status;
-  } else if (status === "cancelled") {
-    await OrderItem.update(
-      { status: "cancelled", reject_reason: reason },
-      { where: { order_id: orderId } },
-    );
-    finalOrderStatus = "cancelled";
-  } else if (status === "payment_request") {
-    finalOrderStatus = "payment_request";
-  }
-
-  order.status = finalOrderStatus;
-  await order.save();
-
-  const updatedOrder = await getFullOrder(orderId);
-  emitOrderUpdate(io, updatedOrder);
-
-  if (io && finalOrderStatus === "confirmed") {
-    io.emit("order_confirmed", updatedOrder);
-  }
-
-  return updatedOrder;
-};
-
-export const confirmBill = async ({
-  discountType,
-  discountValue,
-  io,
-  note,
-  orderId,
-  taxAmount,
-}) => {
-  const order = await assertOrder(orderId);
-
-  const items = await OrderItem.findAll({
-    where: { order_id: orderId, status: { [Op.not]: "cancelled" } },
+const loadBillableItems = (orderId, transaction = null) =>
+  OrderItem.findAll({
+    where: { order_id: orderId, status: { [Op.ne]: "cancelled" } },
     include: [
       { model: MenuItem, as: "menu_item", attributes: ["price"] },
       {
@@ -178,115 +111,324 @@ export const confirmBill = async ({
         ],
       },
     ],
+    transaction,
   });
 
-  const calculatedSubtotal = items.reduce((subtotal, item) => {
-    const basePrice = parseFloat(item.menu_item?.price || 0);
-    const modifiersTotal = (item.modifiers || []).reduce(
-      (sum, modifier) =>
-        sum + parseFloat(modifier.modifier_option?.price_adjustment || 0),
-      0,
-    );
+const calculateSubtotal = (items) =>
+  items.reduce((subtotal, item) => subtotal + calculateItemTotal(item), 0);
 
-    return subtotal + (basePrice + modifiersTotal) * item.quantity;
-  }, 0);
+export const getAllOrders = async () => {
+  return Order.findAll({
+    where: {
+      status: {
+        [Op.notIn]: ["completed", "cancelled"],
+      },
+    },
+    include: ORDER_LIST_INCLUDE,
+    order: [["created_at", "DESC"]],
+  });
+};
 
-  const parsedDiscountValue = parseFloat(discountValue || 0);
-  let discountAmount = 0;
-  if (discountType === "percent") {
-    discountAmount = (calculatedSubtotal * parsedDiscountValue) / 100;
-  } else if (discountType === "fixed") {
-    discountAmount = parsedDiscountValue;
+export const updateOrderStatus = async ({
+  io,
+  orderId,
+  reason,
+  scope = "waiter",
+  status,
+}) => {
+  if (!ORDER_STATUSES.includes(status)) {
+    throw createError("Trang thai don hang khong hop le");
   }
 
-  const tax = parseFloat(taxAmount || 0);
-  const finalTotal = calculatedSubtotal + tax - discountAmount;
-
-  order.subtotal = calculatedSubtotal;
-  order.discount_type = discountType;
-  order.discount_value = parsedDiscountValue;
-  order.tax_amount = tax;
-  order.total_amount = finalTotal > 0 ? finalTotal : 0;
-  order.note = note;
-  order.status = "payment_pending";
-  await order.save();
-
-  const fullOrder = await getFullOrder(orderId);
-  emitOrderUpdate(io, fullOrder);
-  if (io && order.table_id) {
-    io.emit(`bill_confirmed_table_${order.table_id}`, fullOrder);
+  const allowedStatuses = DIRECT_STATUS_BY_SCOPE[scope] || DIRECT_STATUS_BY_SCOPE.waiter;
+  if (!allowedStatuses.includes(status)) {
+    throw createError("Vai tro hien tai khong duoc cap nhat trang thai nay", 403);
   }
 
-  return fullOrder;
+  const transaction = await sequelize.transaction();
+  let committed = false;
+  let emitConfirmed = false;
+
+  try {
+    const order = await assertOrder(orderId, {
+      transaction,
+      lock: Transaction.LOCK.UPDATE,
+    });
+
+    if (["completed", "cancelled"].includes(order.status)) {
+      throw createError("Khong the cap nhat don hang da dong");
+    }
+
+    let finalOrderStatus = status;
+
+    if (status === "confirmed") {
+      await OrderItem.update(
+        { status: "confirmed" },
+        { where: { order_id: orderId, status: "pending" }, transaction },
+      );
+      finalOrderStatus = "confirmed";
+      emitConfirmed = true;
+    } else if (status === "preparing") {
+      await OrderItem.update(
+        { status: "preparing" },
+        { where: { order_id: orderId, status: "confirmed" }, transaction },
+      );
+      finalOrderStatus = "preparing";
+    } else if (status === "ready") {
+      await OrderItem.update(
+        { status: "ready" },
+        { where: { order_id: orderId, status: "preparing" }, transaction },
+      );
+
+      const countNotReady = await OrderItem.count({
+        where: {
+          order_id: orderId,
+          status: { [Op.notIn]: ["ready", "cancelled", "served"] },
+        },
+        transaction,
+      });
+
+      finalOrderStatus = countNotReady === 0 ? "ready" : order.status;
+    } else if (status === "served") {
+      await OrderItem.update(
+        { status: "served" },
+        { where: { order_id: orderId, status: "ready" }, transaction },
+      );
+
+      const countNotServed = await OrderItem.count({
+        where: {
+          order_id: orderId,
+          status: { [Op.notIn]: ["served", "cancelled"] },
+        },
+        transaction,
+      });
+
+      finalOrderStatus = countNotServed === 0 ? "served" : order.status;
+    } else if (status === "cancelled") {
+      await OrderItem.update(
+        { status: "cancelled", reject_reason: reason || null },
+        { where: { order_id: orderId }, transaction },
+      );
+      finalOrderStatus = "cancelled";
+    }
+
+    order.status = finalOrderStatus;
+    await order.save({ transaction });
+    await transaction.commit();
+    committed = true;
+
+    const updatedOrder = await getFullOrder(orderId);
+    emitOrderUpdate(io, updatedOrder);
+
+    if (io && emitConfirmed) {
+      io.emit("order_confirmed", updatedOrder);
+    }
+
+    return updatedOrder;
+  } catch (error) {
+    if (!committed) {
+      await transaction.rollback();
+    }
+    throw error;
+  }
+};
+
+export const confirmBill = async ({
+  discountType,
+  discountValue,
+  io,
+  note,
+  orderId,
+  taxAmount,
+}) => {
+  const transaction = await sequelize.transaction();
+  let committed = false;
+
+  try {
+    const order = await assertOrder(orderId, {
+      transaction,
+      lock: Transaction.LOCK.UPDATE,
+    });
+
+    if (["completed", "cancelled"].includes(order.status)) {
+      throw createError("Khong the chot bill cho don hang da dong");
+    }
+
+    if (order.status !== "payment_request") {
+      throw createError("Chi co the chot bill sau khi khach yeu cau thanh toan");
+    }
+
+    const items = await loadBillableItems(orderId, transaction);
+    if (items.length === 0) {
+      throw createError("Don hang khong co mon nao de thanh toan");
+    }
+
+    const unservedCount = items.filter((item) => item.status !== "served").length;
+    if (unservedCount > 0) {
+      throw createError(`Con ${unservedCount} mon chua duoc phuc vu`);
+    }
+
+    const calculatedSubtotal = calculateSubtotal(items);
+    const parsedDiscountValue = Number(discountValue || 0);
+    const tax = Number(taxAmount || 0);
+
+    if (!Number.isFinite(parsedDiscountValue) || parsedDiscountValue < 0) {
+      throw createError("Gia tri giam gia khong hop le");
+    }
+
+    if (!Number.isFinite(tax) || tax < 0) {
+      throw createError("Tien thue khong hop le");
+    }
+
+    let discountAmount = 0;
+    if (discountType === "percent") {
+      if (parsedDiscountValue > 100) {
+        throw createError("Giam gia phan tram khong duoc vuot qua 100");
+      }
+      discountAmount = (calculatedSubtotal * parsedDiscountValue) / 100;
+    } else if (discountType === "fixed") {
+      discountAmount = parsedDiscountValue;
+    } else if (discountType) {
+      throw createError("Loai giam gia khong hop le");
+    }
+
+    const finalTotal = Math.max(0, calculatedSubtotal + tax - discountAmount);
+
+    order.subtotal = calculatedSubtotal;
+    order.discount_type = discountType || null;
+    order.discount_value = parsedDiscountValue;
+    order.tax_amount = tax;
+    order.total_amount = finalTotal;
+    order.note = note || null;
+    order.status = "payment_pending";
+    await order.save({ transaction });
+
+    await transaction.commit();
+    committed = true;
+
+    const fullOrder = await getFullOrder(orderId);
+    emitOrderUpdate(io, fullOrder);
+    if (io && fullOrder.table_id) {
+      io.emit(`bill_confirmed_table_${fullOrder.table_id}`, fullOrder);
+    }
+
+    return fullOrder;
+  } catch (error) {
+    if (!committed) {
+      await transaction.rollback();
+    }
+    throw error;
+  }
 };
 
 export const markAsPaid = async ({ io, orderId, paymentMethod = "cash" }) => {
-  const order = await assertOrder(orderId);
-
-  order.status = "completed";
-  order.payment_method = paymentMethod;
-  order.completed_at = new Date();
-  await order.save();
-
-  emitOrderUpdate(io, order);
-  if (io) {
-    io.emit("table_status_updated", {
-      tableId: order.table_id,
-      status: "available",
-    });
-    io.emit(`payment_success_table_${order.table_id}`, { orderId });
+  if (!PAYMENT_METHODS.includes(paymentMethod)) {
+    throw createError("Phuong thuc thanh toan khong hop le");
   }
 
-  return order;
+  const transaction = await sequelize.transaction();
+  let committed = false;
+
+  try {
+    const order = await assertOrder(orderId, {
+      transaction,
+      lock: Transaction.LOCK.UPDATE,
+    });
+
+    if (order.status !== "payment_pending") {
+      throw createError("Chi co the thanh toan don da duoc chot bill");
+    }
+
+    order.status = "completed";
+    order.payment_method = paymentMethod;
+    order.transaction_id = order.transaction_id || `${paymentMethod.toUpperCase()}_${Date.now()}`;
+    order.completed_at = new Date();
+    await order.save({ transaction });
+
+    await transaction.commit();
+    committed = true;
+
+    const fullOrder = await getFullOrder(orderId);
+    emitOrderUpdate(io, fullOrder);
+    if (io) {
+      io.emit("table_status_updated", {
+        tableId: fullOrder.table_id,
+        status: "available",
+      });
+      io.emit(`payment_success_table_${fullOrder.table_id}`, { orderId });
+    }
+
+    return fullOrder;
+  } catch (error) {
+    if (!committed) {
+      await transaction.rollback();
+    }
+    throw error;
+  }
 };
 
 export const rejectOrderItem = async ({ io, itemId, reason }) => {
-  const item = await OrderItem.findByPk(itemId, {
-    include: [
-      { model: MenuItem, as: "menu_item" },
-      {
-        model: OrderItemModifier,
-        as: "modifiers",
-        include: [{ model: ModifierOption, as: "modifier_option" }],
-      },
-    ],
-  });
+  const transaction = await sequelize.transaction();
+  let committed = false;
 
-  if (!item) {
-    const error = new Error("Không tìm thấy món");
-    error.status = 404;
-    throw error;
-  }
+  try {
+    const item = await OrderItem.findByPk(itemId, {
+      include: [
+        { model: MenuItem, as: "menu_item" },
+        {
+          model: OrderItemModifier,
+          as: "modifiers",
+          include: [{ model: ModifierOption, as: "modifier_option" }],
+        },
+      ],
+      transaction,
+      lock: Transaction.LOCK.UPDATE,
+    });
 
-  const order = await assertOrder(item.order_id);
-  if (["payment_pending", "completed"].includes(order.status)) {
-    const error = new Error("Không thể hủy món sau khi đã chốt bill");
-    error.status = 400;
-    throw error;
-  }
+    if (!item) {
+      throw createError("Khong tim thay mon", 404);
+    }
 
-  const basePrice = parseFloat(item.price_at_order || item.menu_item?.price || 0);
-  const modifiersTotal = (item.modifiers || []).reduce((sum, modifier) => {
-    return (
-      sum +
-      parseFloat(
-        modifier.price || modifier.modifier_option?.price_adjustment || 0,
+    if (item.status === "cancelled") {
+      throw createError("Mon nay da bi huy");
+    }
+
+    const order = await assertOrder(item.order_id, {
+      transaction,
+      lock: Transaction.LOCK.UPDATE,
+    });
+
+    if (
+      ["payment_request", "payment_pending", "completed", "cancelled"].includes(
+        order.status,
       )
-    );
-  }, 0);
-  const itemTotal = (basePrice + modifiersTotal) * item.quantity;
+    ) {
+      throw createError("Khong the huy mon sau khi da chot bill");
+    }
 
-  order.total_amount = Math.max(0, (order.total_amount || 0) - itemTotal);
-  await order.save();
+    const itemTotal = calculateItemTotal(item);
 
-  item.status = "cancelled";
-  item.reject_reason = reason;
-  await item.save();
+    item.status = "cancelled";
+    item.reject_reason = reason || null;
+    await item.save({ transaction });
 
-  const updatedOrder = await getFullOrder(item.order_id);
-  emitOrderUpdate(io, updatedOrder);
+    order.subtotal = Math.max(0, Number(order.subtotal || 0) - itemTotal);
+    order.total_amount = Math.max(0, Number(order.total_amount || 0) - itemTotal);
+    await order.save({ transaction });
 
-  return updatedOrder;
+    await transaction.commit();
+    committed = true;
+
+    const updatedOrder = await getFullOrder(item.order_id);
+    emitOrderUpdate(io, updatedOrder);
+
+    return updatedOrder;
+  } catch (error) {
+    if (!committed) {
+      await transaction.rollback();
+    }
+    throw error;
+  }
 };
 
 export default {

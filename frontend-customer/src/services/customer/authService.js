@@ -172,11 +172,12 @@ export const verifyForgotPasswordOTP = async (email, otp) => {
   }
 };
 
-export const resetPassword = async (email, otp, newPassword, confirmPassword) => {
+export const resetPassword = async (email, credential, newPassword, confirmPassword) => {
   try {
+    const isOtp = /^\d{6}$/.test(String(credential || ""));
     const response = await apiClient.post("/customer/forgot-password/reset", {
       email,
-      otp,
+      ...(isOtp ? { otp: credential } : { resetToken: credential }),
       newPassword,
       confirmPassword,
     });

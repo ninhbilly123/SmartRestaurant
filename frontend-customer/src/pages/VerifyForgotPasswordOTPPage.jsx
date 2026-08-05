@@ -119,6 +119,7 @@ const VerifyForgotPasswordOTPPage = () => {
             state: {
               email: email,
               otp: otpString,
+              resetToken: result.data?.resetToken,
               from: from
             }
           });

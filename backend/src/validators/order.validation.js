@@ -1,53 +1,38 @@
-import Joi from 'joi';
+import Joi from "joi";
+
+const idSchema = Joi.string().uuid().required();
+
+const modifierSchema = Joi.object({
+  id: Joi.string().uuid().optional(),
+  optionId: Joi.string().uuid().optional(),
+  modifier_option_id: Joi.string().uuid().optional(),
+})
+  .or("id", "optionId", "modifier_option_id")
+  .required();
+
+const orderItemSchema = Joi.object({
+  id: Joi.string().uuid().optional(),
+  menu_item_id: Joi.string().uuid().optional(),
+  quantity: Joi.number().integer().min(1).required(),
+  notes: Joi.string().allow("", null).optional(),
+  modifiers: Joi.array().items(modifierSchema).default([]),
+})
+  .or("id", "menu_item_id")
+  .required();
 
 export const createOrderSchema = Joi.object({
-  table_id: Joi.string()
-    .uuid()
-    .required()
-    .messages({
-      'string.guid': 'Mã bàn phải là định dạng UUID hợp lệ',
-      'any.required': 'Mã bàn là bắt buộc'
-    }),
-  
-  total_amount: Joi.number()
-    .min(0)
-    .optional()
-    .messages({
-      'number.base': 'Tổng tiền phải là số',
-      'number.min': 'Tổng tiền không được nhỏ hơn 0',
-      'any.required': 'Tổng tiền là bắt buộc'
-    }),
-  
-  // 👇 THÊM MỚI: Cho phép gửi ghi chú tổng của đơn hàng
-  note: Joi.string().allow('', null).optional(),
-
-  // 👇 THÊM MỚI: Cho phép gửi danh sách món ăn
-  items: Joi.array().items(
-    Joi.object({
-      id: Joi.alternatives().try(Joi.string(), Joi.number()).required(), // Chấp nhận cả UUID hoặc ID số
-      quantity: Joi.number().integer().min(1).required(),
-      price: Joi.number().min(0).optional(), // Giá có thể optional vì Backend sẽ tự check lại
-      notes: Joi.string().allow('', null).optional(),
-      
-      // Validate modifiers (Topping)
-      modifiers: Joi.array().items(
-        Joi.object({
-          id: Joi.alternatives().try(Joi.string(), Joi.number()).required(),
-          price: Joi.number().min(0).optional()
-        }).unknown(true) // Cho phép các trường lạ khác trong modifier nếu có
-      ).optional().allow(null)
-    }).unknown(true) // Cho phép các trường lạ trong item (ví dụ name) để không bị lỗi
-  ).required().messages({
-     'any.required': 'Danh sách món ăn là bắt buộc',
-     'array.base': 'Danh sách món ăn phải là một mảng'
+  table_id: idSchema.messages({
+    "string.guid": "Ma ban phai la UUID hop le",
+    "any.required": "Ma ban la bat buoc",
   }),
-
-  ordered_at: Joi.date()
-    .iso()
-    .optional()
-    .default(() => new Date())
+  note: Joi.string().allow("", null).optional(),
+  items: Joi.array().items(orderItemSchema).min(1).required().messages({
+    "array.base": "Danh sach mon an phai la mot mang",
+    "array.min": "Danh sach mon an khong duoc rong",
+    "any.required": "Danh sach mon an la bat buoc",
+  }),
 });
 
 export default {
-  createOrderSchema
+  createOrderSchema,
 };

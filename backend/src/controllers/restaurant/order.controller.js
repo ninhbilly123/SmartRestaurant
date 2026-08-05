@@ -25,6 +25,7 @@ export const updateOrderStatus = async (req, res) => {
       io: req.io,
       orderId,
       reason: req.body.reason,
+      scope: req.orderStatusScope || "waiter",
       status: req.body.status,
     });
 

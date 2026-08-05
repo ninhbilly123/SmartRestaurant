@@ -30,6 +30,7 @@ const AuthCallbackPage = () => {
         // Chuẩn bị data để đồng bộ 
         const syncData = {
           email: user.email,
+          googleAccessToken: session.provider_token,
           username : user.user_metadata?.full_name || user.email.split('@')[0],
         };
         

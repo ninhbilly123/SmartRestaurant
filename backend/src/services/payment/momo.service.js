@@ -10,10 +10,48 @@ const sign = (rawSignature) =>
     .update(rawSignature)
     .digest("hex");
 
+const safeCompare = (left, right) => {
+  if (!left || !right) return false;
+
+  const leftBuffer = Buffer.from(String(left), "hex");
+  const rightBuffer = Buffer.from(String(right), "hex");
+  if (leftBuffer.length !== rightBuffer.length) return false;
+
+  return crypto.timingSafeEqual(leftBuffer, rightBuffer);
+};
+
 const assertMomoConfigured = () => {
   if (!env.momo.accessKey || !env.momo.secretKey) {
-    throw new Error("Thiếu cấu hình MoMo");
+    throw new Error("Thieu cau hinh MoMo");
   }
+};
+
+const callbackRawSignature = (payload) =>
+  [
+    `accessKey=${env.momo.accessKey}`,
+    `amount=${payload.amount ?? ""}`,
+    `extraData=${payload.extraData ?? ""}`,
+    `message=${payload.message ?? ""}`,
+    `orderId=${payload.orderId ?? ""}`,
+    `orderInfo=${payload.orderInfo ?? ""}`,
+    `orderType=${payload.orderType ?? ""}`,
+    `partnerCode=${payload.partnerCode ?? ""}`,
+    `payType=${payload.payType ?? ""}`,
+    `requestId=${payload.requestId ?? ""}`,
+    `responseTime=${payload.responseTime ?? ""}`,
+    `resultCode=${payload.resultCode ?? ""}`,
+    `transId=${payload.transId ?? ""}`,
+  ].join("&");
+
+export const verifyMomoCallbackSignature = (payload) => {
+  assertMomoConfigured();
+
+  if (payload.partnerCode && payload.partnerCode !== PARTNER_CODE) {
+    return false;
+  }
+
+  const expectedSignature = sign(callbackRawSignature(payload));
+  return safeCompare(expectedSignature, payload.signature);
 };
 
 export const createMomoPayment = async ({ order }) => {
@@ -24,7 +62,12 @@ export const createMomoPayment = async ({ order }) => {
   const redirectUrl = `${env.cors.frontendUrl}/customer/orders/${customerOrderId}`;
   const ipnUrl = env.momo.ipnUrl || `${env.cors.backendUrl}/api/customer/payment/callback`;
   const requestType = "payWithMethod";
-  const amount = String(Math.max(1000, Math.round(Number(order.total_amount))));
+  const orderTotal = Number(order.total_amount);
+  if (!Number.isFinite(orderTotal) || orderTotal <= 0) {
+    throw new Error("Tong tien don hang khong hop le");
+  }
+
+  const amount = String(Math.max(1000, Math.round(orderTotal)));
   const momoOrderId = `${PARTNER_CODE}_${customerOrderId.slice(-8)}_${Date.now()}`;
   const requestId = momoOrderId;
   const extraData = Buffer.from(JSON.stringify({ customerOrderId })).toString("base64");
@@ -86,7 +129,7 @@ export const queryMomoPaymentStatus = async (orderId) => {
       signature: sign(rawSignature),
       lang: "vi",
     },
-    { headers: { "Content-Type": "application/json" } }
+    { headers: { "Content-Type": "application/json" } },
   );
 
   return result.data;

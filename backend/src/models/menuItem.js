@@ -59,6 +59,10 @@ MenuItem.init(
       type: DataTypes.BOOLEAN,
       defaultValue: false,
     },
+    deleted_at: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
   },
   {
     sequelize,

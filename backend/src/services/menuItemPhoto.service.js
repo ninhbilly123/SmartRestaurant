@@ -1,148 +1,133 @@
-// src/services/menuItemPhoto.service.js
 import { Op } from "sequelize";
-import db from "../models/index.js"; // <--- IMPORT TỪ FILE INDEX VỪA TẠO
+import logger from "../config/logger.js";
+import db from "../models/index.js";
 import {
-  uploadBufferToCloudinary,
   deleteFromCloudinary,
+  uploadBufferToCloudinary,
 } from "../../utils/cloudinary.js";
 
-// Lấy các thành phần cần thiết ra
 const { MenuItem, MenuItemPhoto, sequelize } = db;
 
+const MAX_PHOTOS_PER_ITEM = 10;
+
+const createError = (message, statusCode = 400) => {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  return error;
+};
+
+const buildFileName = (menuItemId) => {
+  const timestamp = Date.now();
+  const randomStr = Math.random().toString(36).substring(2, 10);
+  return `menu-${menuItemId}-${timestamp}-${randomStr}`;
+};
+
+const cleanupCloudinaryUrls = async (urls) => {
+  await Promise.allSettled(urls.map((url) => deleteFromCloudinary(url)));
+};
+
 class MenuItemPhotoService {
-  // Upload photos với transaction đã có sẵn (dùng khi tạo item mới với photos)
   async uploadPhotosWithTransaction(menuItemId, files, transaction) {
-    let uploadedPhotos = [];
+    const uploadedUrls = [];
+    const createdPhotos = [];
 
     try {
-      // Kiểm tra số lượng ảnh
       const existingCount = await MenuItemPhoto.count({
         where: { menu_item_id: menuItemId },
         transaction,
       });
 
-      if (existingCount + files.length > 10) {
-        const error = new Error("Mỗi món chỉ được tối đa 10 ảnh");
-        error.statusCode = 400;
-        throw error;
+      if (existingCount + files.length > MAX_PHOTOS_PER_ITEM) {
+        throw createError("Moi mon chi duoc toi da 10 anh");
       }
 
       const shouldSetPrimary = existingCount === 0;
 
-      // Upload loop
       for (const [index, file] of files.entries()) {
-        // Validation file buffer
         if (!file.buffer) continue;
 
-        const timestamp = Date.now();
-        const randomStr = Math.random().toString(36).substring(2, 10);
-        const fileName = `menu-${menuItemId}-${timestamp}-${randomStr}`;
-
-        // Upload Cloudinary
         const url = await uploadBufferToCloudinary(
           file.buffer,
           `menu-items/${menuItemId}`,
-          fileName,
+          buildFileName(menuItemId),
         );
+        uploadedUrls.push(url);
 
-        // Save DB
         const photo = await MenuItemPhoto.create(
           {
             menu_item_id: menuItemId,
-            url: url,
+            url,
             is_primary: shouldSetPrimary && index === 0,
           },
           { transaction },
         );
 
-        uploadedPhotos.push(photo);
+        createdPhotos.push(photo);
       }
 
-      return uploadedPhotos;
+      return createdPhotos;
     } catch (error) {
-      // Cleanup Cloudinary nếu có lỗi
-      const cleanupPromises = uploadedPhotos.map((p) =>
-        deleteFromCloudinary(p.url),
-      );
-      await Promise.allSettled(cleanupPromises);
+      await cleanupCloudinaryUrls(uploadedUrls);
       throw error;
     }
   }
 
-  // POST: Upload multiple photos
   async uploadPhotos(menuItemId, files) {
-    // Dùng transaction từ instance chung
+    const uploadedUrls = [];
     const transaction = await sequelize.transaction();
-    let uploadedPhotos = [];
 
     try {
-      // 1. Kiểm tra menu item tồn tại
       const menuItem = await MenuItem.findByPk(menuItemId, { transaction });
       if (!menuItem) {
-        const error = new Error(`Menu item ${menuItemId} không tồn tại`);
-        error.statusCode = 404;
-        throw error;
+        throw createError(`Menu item ${menuItemId} khong ton tai`, 404);
       }
 
-      // 2. Kiểm tra số lượng ảnh
       const existingCount = await MenuItemPhoto.count({
         where: { menu_item_id: menuItemId },
         transaction,
       });
 
-      if (existingCount + files.length > 10) {
-        const error = new Error("Mỗi món chỉ được tối đa 10 ảnh");
-        error.statusCode = 400;
-        throw error;
+      if (existingCount + files.length > MAX_PHOTOS_PER_ITEM) {
+        throw createError("Moi mon chi duoc toi da 10 anh");
       }
 
       const shouldSetPrimary = existingCount === 0;
+      const createdPhotos = [];
 
-      // 3. Upload loop
       for (const [index, file] of files.entries()) {
-        // Validation file buffer
         if (!file.buffer) continue;
 
-        const timestamp = Date.now();
-        const randomStr = Math.random().toString(36).substring(2, 10);
-        const fileName = `menu-${menuItemId}-${timestamp}-${randomStr}`;
-
-        // Upload Cloudinary
         const url = await uploadBufferToCloudinary(
           file.buffer,
           `menu-items/${menuItemId}`,
-          fileName,
+          buildFileName(menuItemId),
         );
+        uploadedUrls.push(url);
 
-        // Save DB
         const photo = await MenuItemPhoto.create(
           {
             menu_item_id: menuItemId,
-            url: url,
+            url,
             is_primary: shouldSetPrimary && index === 0,
           },
           { transaction },
         );
 
-        uploadedPhotos.push(photo);
+        createdPhotos.push(photo);
       }
 
       await transaction.commit();
-      return uploadedPhotos;
+      return createdPhotos;
     } catch (error) {
       await transaction.rollback();
-      // Cleanup Cloudinary
-      const cleanupPromises = uploadedPhotos.map((p) =>
-        deleteFromCloudinary(p.url),
-      );
-      await Promise.allSettled(cleanupPromises);
+      await cleanupCloudinaryUrls(uploadedUrls);
       throw error;
     }
   }
 
-  // DELETE: Remove photo
   async deletePhoto(menuItemId, photoId) {
     const transaction = await sequelize.transaction();
+    let photoUrl = null;
 
     try {
       const photo = await MenuItemPhoto.findOne({
@@ -151,12 +136,11 @@ class MenuItemPhotoService {
       });
 
       if (!photo) {
-        const error = new Error("Ảnh không tồn tại");
-        error.statusCode = 404;
-        throw error;
+        throw createError("Anh khong ton tai", 404);
       }
 
-      // Logic đổi Primary nếu xóa ảnh chính
+      photoUrl = photo.url;
+
       if (photo.is_primary) {
         const nextPhoto = await MenuItemPhoto.findOne({
           where: {
@@ -172,11 +156,17 @@ class MenuItemPhotoService {
         }
       }
 
-      // Xóa Cloudinary & DB
-      await deleteFromCloudinary(photo.url);
       await photo.destroy({ transaction });
-
       await transaction.commit();
+
+      await deleteFromCloudinary(photoUrl).catch((error) => {
+        logger.warn("Cloudinary photo cleanup failed after DB delete:", {
+          menuItemId,
+          photoId,
+          error: error.message,
+        });
+      });
+
       return { success: true };
     } catch (error) {
       await transaction.rollback();
@@ -184,7 +174,6 @@ class MenuItemPhotoService {
     }
   }
 
-  // PATCH: Set primary
   async setPrimaryPhoto(menuItemId, photoId) {
     const transaction = await sequelize.transaction();
 
@@ -195,10 +184,9 @@ class MenuItemPhotoService {
       });
 
       if (!photo) {
-        throw new Error("Ảnh không tồn tại");
+        throw createError("Anh khong ton tai", 404);
       }
 
-      // Reset all -> Set one
       await MenuItemPhoto.update(
         { is_primary: false },
         { where: { menu_item_id: menuItemId }, transaction },

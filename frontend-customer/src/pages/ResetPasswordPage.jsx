@@ -12,14 +12,14 @@ const ResetPasswordPage = () => {
   
   const navigate = useNavigate();
   const location = useLocation();
-  const { email, otp, from = "/" } = location.state || {};
+  const { email, otp, resetToken, from = "/" } = location.state || {};
 
   // Redirect nếu không có email hoặc OTP
   useEffect(() => {
-    if (!email || !otp) {
+    if (!email || (!otp && !resetToken)) {
       navigate("/customer/forgot-password", { state: { from } });
     }
-  }, [email, otp, navigate, from]);
+  }, [email, otp, resetToken, navigate, from]);
 
   const validatePassword = () => {
     if (password.length < 6) {
@@ -45,7 +45,12 @@ const ResetPasswordPage = () => {
     setLoading(true);
 
     try {
-      const result = await customerService.resetPassword(email, otp, password, confirmPassword);
+      const result = await customerService.resetPassword(
+        email,
+        resetToken || otp,
+        password,
+        confirmPassword,
+      );
       
       if (result.success) {
         setSuccess("Đặt lại mật khẩu thành công! Bạn sẽ được chuyển đến trang đăng nhập...");

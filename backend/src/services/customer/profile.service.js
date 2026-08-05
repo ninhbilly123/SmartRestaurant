@@ -152,7 +152,7 @@ export const updateCustomer = async (uid, updateData) => {
     await VerifiedEmail.create({
       customer_uid: customer.uid,
       email: updateData.email,
-      otp_code: otp,
+      otp_code: OTPService.hashCredential(otp),
       otp_expires: otpExpires,
       is_verified: false,
     });

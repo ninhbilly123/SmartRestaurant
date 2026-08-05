@@ -1,13 +1,9 @@
 import logger from "../../config/logger.js";
-import MenuCategory from "../../models/menuCategory.js";
-import MenuItem from "../../models/menuItem.js";
 import { CategoryService } from "../../services/category.service.js";
 
 export const getAllCategory = async (req, res) => {
   try {
-    const categories = await MenuCategory.findAll({
-      order: [["created_at", "DESC"]],
-    });
+    const categories = await CategoryService.getAll();
 
     return res.json({
       success: true,
@@ -141,36 +137,7 @@ export const updateCategoryStatus = async (req, res) => {
 export const deleteCategory = async (req, res) => {
   try {
     const { id } = req.params;
-    const category = await MenuCategory.findOne({
-      where: { id, status: "active" },
-    });
-
-    if (!category) {
-      return res.status(404).json({
-        success: false,
-        message: "Category not found or already deleted",
-      });
-    }
-
-    const activeItemsCount = await MenuItem.count({
-      where: {
-        category_id: id,
-        status: "active",
-      },
-    });
-
-    if (activeItemsCount > 0) {
-      return res.status(400).json({
-        success: false,
-        message: `Cannot delete category. It contains ${activeItemsCount} active menu items.`,
-      });
-    }
-
-    await category.update({
-      is_deleted: true,
-      status: "inactive",
-      deleted_at: new Date(),
-    });
+    const category = await CategoryService.delete(id);
 
     return res.status(200).json({
       success: true,
@@ -183,9 +150,10 @@ export const deleteCategory = async (req, res) => {
     });
   } catch (error) {
     logger.error("Error deleting category:", error);
-    return res.status(500).json({
+
+    return res.status(error.status || 500).json({
       success: false,
-      message: "Internal server error",
+      message: error.message || "Internal server error",
     });
   }
 };

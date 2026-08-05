@@ -73,6 +73,10 @@ const env = {
     port: parseNumber(process.env.EMAIL_PORT, 587),
   },
 
+  google: {
+    clientId: process.env.GOOGLE_CLIENT_ID || "",
+  },
+
   momo: {
     accessKey: process.env.MOMO_ACCESS_KEY || "",
     secretKey: process.env.MOMO_SECRET_KEY || "",
