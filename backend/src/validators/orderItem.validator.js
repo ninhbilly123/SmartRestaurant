@@ -1,20 +1,60 @@
 import Joi from "joi";
 
 const idSchema = Joi.string().uuid();
+const uuidPattern =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-const modifierSchema = Joi.object({
-  id: idSchema.optional(),
-  optionId: idSchema.optional(),
-  modifier_option_id: idSchema.optional(),
-})
-  .or("id", "optionId", "modifier_option_id");
+const getModifierOptionId = (modifier) => {
+  if (typeof modifier === "string") return modifier;
+
+  return (
+    modifier?.modifier_option_id ||
+    modifier?.modifierOptionId ||
+    modifier?.option_id ||
+    modifier?.optionId ||
+    modifier?.id ||
+    modifier?.modifier_option?.id ||
+    modifier?.option?.id
+  );
+};
+
+const normalizeModifiers = (value, helpers) => {
+  if (!Array.isArray(value)) {
+    return helpers.error("array.base");
+  }
+
+  const normalized = [];
+
+  for (const modifier of value) {
+    const modifierOptionId = getModifierOptionId(modifier);
+
+    if (!modifierOptionId) {
+      continue;
+    }
+
+    if (!uuidPattern.test(String(modifierOptionId))) {
+      return helpers.error("any.invalid");
+    }
+
+    normalized.push({
+      modifier_option_id: String(modifierOptionId),
+    });
+  }
+
+  return normalized;
+};
+
+const modifiersSchema = Joi.array()
+  .items(Joi.any())
+  .custom(normalizeModifiers, "normalize modifiers")
+  .default([]);
 
 const orderItemPayloadSchema = Joi.object({
   menu_item_id: idSchema.optional(),
   id: idSchema.optional(),
   quantity: Joi.number().integer().min(1).required(),
   notes: Joi.string().allow("", null).optional(),
-  modifiers: Joi.array().items(modifierSchema).default([]),
+  modifiers: modifiersSchema,
 })
   .or("menu_item_id", "id");
 

@@ -6,19 +6,27 @@ const getApiExecutor = () => (getCustomerToken() ? customerApi : apiClient);
 const getErrorMessage = (error, fallback) =>
   error.response?.data?.error || error.response?.data?.message || error.message || fallback;
 
+const getModifierOptionId = (modifier) =>
+  modifier?.modifier_option_id ||
+  modifier?.optionId ||
+  modifier?.id ||
+  modifier?.modifier_option?.id ||
+  modifier?.option?.id;
+
+const normalizeModifiers = (modifiers = []) =>
+  modifiers
+    .map((modifier) => getModifierOptionId(modifier))
+    .filter(Boolean)
+    .map((modifierOptionId) => ({
+      modifier_option_id: modifierOptionId,
+    }));
+
 const normalizeCartItems = (cartItems) =>
   cartItems.map((item) => ({
     id: item.id,
     quantity: Number(item.quantity),
     notes: item.notes || item.note || "",
-    modifiers: (item.modifiers || []).map((modifier) => ({
-      id: modifier.id || modifier.optionId,
-      price:
-        Number(modifier.price) ||
-        Number(modifier.price_adjustment) ||
-        Number(modifier.priceAdjustment) ||
-        0,
-    })),
+    modifiers: normalizeModifiers(item.modifiers),
   }));
 
 export const createOrderWithItems = async (tableId, cartItems) => {
@@ -110,16 +118,8 @@ export const addItemsToOrder = async (orderId, cartItems) => {
       items: cartItems.map((item) => ({
         menu_item_id: item.id,
         quantity: Number(item.quantity) || 1,
-        price_at_order: Number(item.price) || 0,
         notes: item.notes || item.note || "",
-        modifiers: (item.modifiers || []).map((modifier) => ({
-          id: modifier.id || modifier.optionId,
-          price:
-            Number(modifier.price) ||
-            Number(modifier.price_adjustment) ||
-            Number(modifier.priceAdjustment) ||
-            0,
-        })),
+        modifiers: normalizeModifiers(item.modifiers),
       })),
     };
 

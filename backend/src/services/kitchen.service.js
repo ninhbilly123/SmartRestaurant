@@ -170,7 +170,6 @@ export const updateOrderItemStatus = async ({ itemId, status, io }) => {
     }
 
     const order = await Order.findByPk(item.order_id, {
-      include: [{ model: OrderItem, as: "items" }],
       transaction,
       lock: Transaction.LOCK.UPDATE,
     });
@@ -178,6 +177,11 @@ export const updateOrderItemStatus = async ({ itemId, status, io }) => {
     if (!order) {
       throw createError("Order not found", 404);
     }
+
+    const items = await OrderItem.findAll({
+      where: { order_id: order.id },
+      transaction,
+    });
 
     if (
       ["completed", "cancelled", "payment_request", "payment_pending"].includes(
@@ -190,7 +194,7 @@ export const updateOrderItemStatus = async ({ itemId, status, io }) => {
     item.status = status;
     await item.save({ transaction });
 
-    const updatedItems = order.items.map((orderItem) =>
+    const updatedItems = items.map((orderItem) =>
       orderItem.id === item.id ? item : orderItem,
     );
     order.status = resolveParentOrderStatus(order.status, updatedItems);

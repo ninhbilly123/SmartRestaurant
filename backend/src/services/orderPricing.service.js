@@ -15,7 +15,15 @@ export const createServiceError = (message, status = 400) => {
 };
 
 const getModifierOptionId = (modifier) =>
-  modifier?.optionId || modifier?.id || modifier?.modifier_option_id;
+  typeof modifier === "string"
+    ? modifier
+    : modifier?.modifier_option_id ||
+      modifier?.modifierOptionId ||
+      modifier?.option_id ||
+      modifier?.optionId ||
+      modifier?.id ||
+      modifier?.modifier_option?.id ||
+      modifier?.option?.id;
 
 const getMenuItemId = (itemData) => itemData?.menu_item_id || itemData?.id;
 
